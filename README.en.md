@@ -26,17 +26,23 @@ It is only a few lines, so you do not need a plugin manager — or even this rep
 
 ```zsh
 # Linux (fcitx5)
-_ime_reset() { fcitx5-remote -c &> /dev/null }
-autoload -Uz add-zle-hook-widget
-add-zle-hook-widget zle-line-finish _ime_reset
+if (( $+commands[fcitx5-remote] )); then
+  _ime_reset() { fcitx5-remote -c &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
 ```
 
 ```zsh
 # macOS (macism)
-_ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-autoload -Uz add-zle-hook-widget
-add-zle-hook-widget zle-line-finish _ime_reset
+if (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
 ```
+
+The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter.
 
 If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using another IME (ibus, Windows' IME through WSL, ...)? Replace the body of `_ime_reset` with whatever command turns your IME off.
 

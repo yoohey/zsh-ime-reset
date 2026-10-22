@@ -26,17 +26,23 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ```zsh
 # Linux (fcitx5)
-_ime_reset() { fcitx5-remote -c &> /dev/null }
-autoload -Uz add-zle-hook-widget
-add-zle-hook-widget zle-line-finish _ime_reset
+if (( $+commands[fcitx5-remote] )); then
+  _ime_reset() { fcitx5-remote -c &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
 ```
 
 ```zsh
 # macOS (macism)
-_ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-autoload -Uz add-zle-hook-widget
-add-zle-hook-widget zle-line-finish _ime_reset
+if (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
 ```
+
+fcitx5 や macism が入っていない環境で貼ると、Enter のたびに Fedora の「パッケージをインストールしますか？」（command-not-found）が出てしまうので、`if` で、コマンドがあるときだけ登録するようにしています。
 
 複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus など別の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
 
