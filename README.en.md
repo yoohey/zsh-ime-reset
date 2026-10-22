@@ -52,7 +52,12 @@ The `if` registers the hook only when the command exists. Without it, a machine 
 ## Notes (ibus / GNOME)
 
 - **The top bar indicator can stay out of date.** After `ibus engine` switches from outside, the input is alphanumeric again, but GNOME's top bar may keep showing "あ" (seen on Fedora: the input-source menu still has the Japanese source selected, and picking a source again changes it to "en"). Typing is alphanumeric, so it works; only the display lags.
-- **Match the engine name to your keyboard layout.** The default is the Japanese layout, `xkb:jp::jpn`. On a US-layout keyboard use `xkb:us::eng`, or keys such as `@` and `"` may move to their Japanese-layout positions (a caution from a Fedora setup whose input source was "English (US)"; whether the keys actually shift was not checked). Edit that line in the pasted block, or set `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` before loading the plugin.
+- **Match the engine name to your keyboard layout.** The default is the Japanese layout, `xkb:jp::jpn`. On a US-layout keyboard use `xkb:us::eng`, or keys such as `@` and `"` may move to their Japanese-layout positions (a caution from a Fedora setup whose input source was "English (US)"; whether the keys actually shift was not checked). Edit that line in the pasted block; with the git install, add one line before the `source` line:
+
+  ```zsh
+  ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng
+  source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+  ```
 
 ## How it works
 
