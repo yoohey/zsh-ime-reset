@@ -79,7 +79,7 @@ tmux treats the `prefix` key before root bindings, so `prefix` is set to `None` 
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, and on Fedora with ibus (`ibus engine xkb:jp::jpn` switches to alphanumeric); the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, and on Fedora with ibus (the pasted block switches back on every Enter); the macOS branch is tested only with a fake `macism`.
 
 ## License
 

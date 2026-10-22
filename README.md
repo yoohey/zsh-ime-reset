@@ -79,7 +79,7 @@ tmux は `prefix` に指定したキーを root の割り当てより先に処�
 ./tests/run.zsh
 ```
 
-疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）と、Fedora（ibus。`ibus engine xkb:jp::jpn` で英数に切り替わること）です。macOS の分岐は、偽の `macism` でしか試していません。
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）と、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）です。macOS の分岐は、偽の `macism` でしか試していません。
 
 ## ライセンス
 
