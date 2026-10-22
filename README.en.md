@@ -93,6 +93,10 @@ With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::e
 
 Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, and on Fedora with ibus (the pasted block switches back on every Enter); the macOS branch is tested only with a fake `macism`.
 
+## Article (Japanese)
+
+The background, the tmux prefix setup, and the migemo completion ([zsh-migemo-fallback](https://github.com/yoohey/zsh-migemo-fallback)) are written up in a Zenn article: https://zenn.dev/yoohey/articles/ime-terminal-stress
+
 ## License
 
 MIT

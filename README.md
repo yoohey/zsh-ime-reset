@@ -93,6 +93,10 @@ ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（
 
 疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）と、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）です。macOS の分岐は、偽の `macism` でしか試していません。
 
+## 解説記事
+
+作った経緯と、tmux の prefix の設定、migemo の補完（[zsh-migemo-fallback](https://github.com/yoohey/zsh-migemo-fallback)）も含めた全体の話は、Zenn の記事にまとめています: https://zenn.dev/yoohey/articles/ime-terminal-stress
+
 ## ライセンス
 
 MIT
