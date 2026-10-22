@@ -23,17 +23,25 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### `.zshrc` にそのまま貼る
 
-数行だけなので、プラグインの仕組みも、このリポジトリも要りません。次の 1 ブロックを `.zshrc` に貼ってください。fcitx5・macOS・ibus のどれでも動き、どれも無い環境では何もしません。
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。
 
 ```zsh
-if (( $+commands[fcitx5-remote] )); then            # Linux (fcitx5)
+# Linux: fcitx5 があれば fcitx5、なければ ibus（英語配列なら xkb:us::eng）
+if (( $+commands[fcitx5-remote] )); then
   _ime_reset() { fcitx5-remote -c &> /dev/null }
-elif (( $+commands[macism] )); then                 # macOS
-  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-elif (( $+commands[ibus] )); then                   # Linux (ibus。英語配列なら xkb:us::eng)
+elif (( $+commands[ibus] )); then
   _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
 fi
 if (( $+functions[_ime_reset] )); then
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
+```
+
+```zsh
+# macOS（macism）
+if (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
   autoload -Uz add-zle-hook-widget
   add-zle-hook-widget zle-line-finish _ime_reset
 fi

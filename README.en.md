@@ -23,17 +23,25 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### Or paste it into your `.zshrc`
 
-It is only a few lines, so you do not need a plugin manager — or even this repository. Paste this one block into your `.zshrc`. It works with fcitx5, macOS and ibus, and does nothing where none of them exists.
+It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing.
 
 ```zsh
-if (( $+commands[fcitx5-remote] )); then            # Linux (fcitx5)
+# Linux: fcitx5 if present, otherwise ibus (use xkb:us::eng for a US layout)
+if (( $+commands[fcitx5-remote] )); then
   _ime_reset() { fcitx5-remote -c &> /dev/null }
-elif (( $+commands[macism] )); then                 # macOS
-  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-elif (( $+commands[ibus] )); then                   # Linux (ibus; use xkb:us::eng for a US layout)
+elif (( $+commands[ibus] )); then
   _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
 fi
 if (( $+functions[_ime_reset] )); then
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
+```
+
+```zsh
+# macOS (macism)
+if (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
   autoload -Uz add-zle-hook-widget
   add-zle-hook-widget zle-line-finish _ime_reset
 fi
