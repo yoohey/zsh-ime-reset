@@ -23,38 +23,23 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### Or paste it into your `.zshrc`
 
-It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS:
+It is only a few lines, so you do not need a plugin manager — or even this repository. Paste this one block into your `.zshrc`. It works with fcitx5, macOS and ibus, and does nothing where none of them exists.
 
 ```zsh
-# Linux (fcitx5)
-if (( $+commands[fcitx5-remote] )); then
+if (( $+commands[fcitx5-remote] )); then            # Linux (fcitx5)
   _ime_reset() { fcitx5-remote -c &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
-
-```zsh
-# Linux (ibus; use xkb:us::eng for a US layout)
-if (( $+commands[ibus] )); then
-  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
-
-```zsh
-# macOS (macism)
-if (( $+commands[macism] )); then
+elif (( $+commands[macism] )); then                 # macOS
   _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+elif (( $+commands[ibus] )); then                   # Linux (ibus; use xkb:us::eng for a US layout)
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+fi
+if (( $+functions[_ime_reset] )); then
   autoload -Uz add-zle-hook-widget
   add-zle-hook-widget zle-line-finish _ime_reset
 fi
 ```
 
-The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter.
-
-If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off.
+The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off. The plugin file (`zsh-ime-reset.plugin.zsh`) is nearly the same code, with comments and a variable for the ibus engine name.
 
 ## How it works
 

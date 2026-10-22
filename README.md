@@ -23,38 +23,23 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### `.zshrc` にそのまま貼る
 
-数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。次の 1 ブロックを `.zshrc` に貼ってください。fcitx5・macOS・ibus のどれでも動き、どれも無い環境では何もしません。
 
 ```zsh
-# Linux (fcitx5)
-if (( $+commands[fcitx5-remote] )); then
+if (( $+commands[fcitx5-remote] )); then            # Linux (fcitx5)
   _ime_reset() { fcitx5-remote -c &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
-
-```zsh
-# Linux (ibus。英語配列なら xkb:us::eng)
-if (( $+commands[ibus] )); then
-  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
-
-```zsh
-# macOS (macism)
-if (( $+commands[macism] )); then
+elif (( $+commands[macism] )); then                 # macOS
   _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+elif (( $+commands[ibus] )); then                   # Linux (ibus。英語配列なら xkb:us::eng)
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+fi
+if (( $+functions[_ime_reset] )); then
   autoload -Uz add-zle-hook-widget
   add-zle-hook-widget zle-line-finish _ime_reset
 fi
 ```
 
-fcitx5 や macism が入っていない環境で貼ると、Enter のたびに Fedora の「パッケージをインストールしますか？」（command-not-found）が出てしまうので、`if` で、コマンドがあるときだけ登録するようにしています。
-
-複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
+`if` で、コマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまいます。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。プラグイン版（`zsh-ime-reset.plugin.zsh`）は、ほぼ同じ中身で、コメントと、ibus のエンジン名を変える環境変数が付いています。
 
 ## しくみ
 

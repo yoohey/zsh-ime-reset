@@ -4,7 +4,7 @@
 #   ./tests/run.zsh
 zmodload zsh/zpty || exit 1
 emulate -L zsh
-PLUGIN=${0:A:h:h}/zsh-ime-reset.plugin.zsh
+PLUGIN=${PLUGIN:-${0:A:h:h}/zsh-ime-reset.plugin.zsh}   # PLUGIN=file tests another file, e.g. the README block
 TMP=$(mktemp -d) || exit 1
 trap 'rm -rf -- $TMP' EXIT
 ng=0
