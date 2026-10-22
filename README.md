@@ -83,6 +83,8 @@ if-shell 'command -v macism' \
 
 tmux は `prefix` に指定したキーを root の割り当てより先に処理するので、`prefix` は `None` にして、root の `C-t` の割り当てで「英数に戻して prefix テーブルへ入る」形にしています。本物の prefix が無くなるので、ステータスバーで待ち状態を出すときは `client_prefix` ではなく `client_key_table` で判定してください。
 
+ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（US 配列なら `xkb:us::eng`）に、`command -v fcitx5-remote` の判定を `command -v ibus` に書き換えてください（tmux の中から呼ぶ形は、まだ試していません）。
+
 ## テスト
 
 ```zsh

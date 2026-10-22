@@ -83,6 +83,8 @@ if-shell 'command -v macism' \
 
 tmux treats the `prefix` key before root bindings, so `prefix` is set to `None` and `C-t` is bound in the root table instead. Because there is no real prefix any more, a status bar that tests `client_prefix` will not light up; test `client_key_table` instead.
 
+With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::eng` for a US layout) and `command -v fcitx5-remote` with `command -v ibus`. (Calling it from inside tmux has not been tried yet.)
+
 ## Tests
 
 ```zsh
