@@ -13,10 +13,32 @@ If neither command exists (a server, WSL2 without fcitx5), the plugin adds nothi
 
 ## Install
 
+### With git
+
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
 echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
+
+### Or paste it into your `.zshrc`
+
+It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS:
+
+```zsh
+# Linux (fcitx5)
+_ime_reset() { fcitx5-remote -c &> /dev/null }
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget zle-line-finish _ime_reset
+```
+
+```zsh
+# macOS (macism)
+_ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget zle-line-finish _ime_reset
+```
+
+If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using another IME (ibus, Windows' IME through WSL, ...)? Replace the body of `_ime_reset` with whatever command turns your IME off.
 
 ## How it works
 

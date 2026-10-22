@@ -13,10 +13,32 @@ zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を
 
 ## 入れ方
 
+### git で入れる
+
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
 echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
+
+### `.zshrc` にそのまま貼る
+
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。
+
+```zsh
+# Linux (fcitx5)
+_ime_reset() { fcitx5-remote -c &> /dev/null }
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget zle-line-finish _ime_reset
+```
+
+```zsh
+# macOS (macism)
+_ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+autoload -Uz add-zle-hook-widget
+add-zle-hook-widget zle-line-finish _ime_reset
+```
+
+複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus など別の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
 
 ## しくみ
 
