@@ -1,28 +1,28 @@
 # zsh-ime-reset
 
-Switch the input method (IME) back to alphanumeric every time you press Enter at the zsh prompt. [日本語](README.ja.md)
+zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を英数に戻すプラグインです。[English](README.en.md)
 
-In a terminal you almost always want alphanumeric next. Turn the IME on by hand when you need to type Japanese (or any IME input); the next Enter puts you back, so the next command never starts as garbled kana.
+ターミナルでは、次に打つのはたいてい英数です。日本語が要るときだけ手で IME をオンにすれば、次の Enter で英数に戻るので、次のコマンドがかなで化けることがありません。
 
-| Where | Command used | Needs |
+| 環境 | 使うコマンド | 必要なもの |
 |---|---|---|
-| Linux with fcitx5 | `fcitx5-remote -c` | fcitx5 |
+| Linux（fcitx5） | `fcitx5-remote -c` | fcitx5 |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 
-If neither command exists (a server, WSL2 without fcitx5), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
+どちらのコマンドも無い環境（サーバー、fcitx5 の無い WSL2）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
 
-## Install
+## 入れ方
 
-### With git
+### git で入れる
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
 echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
 
-### Or paste it into your `.zshrc`
+### `.zshrc` にそのまま貼る
 
-It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS:
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。
 
 ```zsh
 # Linux (fcitx5)
@@ -38,17 +38,17 @@ autoload -Uz add-zle-hook-widget
 add-zle-hook-widget zle-line-finish _ime_reset
 ```
 
-If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using another IME (ibus, Windows' IME through WSL, ...)? Replace the body of `_ime_reset` with whatever command turns your IME off.
+複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus など別の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
 
-## How it works
+## しくみ
 
-It registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only in the terminal that has the focus. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
+`zle-line-finish` のフックを使います。入力した行が確定したとき、つまりフォーカスのあるターミナルでだけ動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので使いません。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
 
-Note: the Enter that confirms an IME conversion does not reach zsh, so it does not switch; the next Enter does.
+注意: IME の変換を確定する Enter は zsh に届かないので、そのときは戻りません。次の Enter で戻ります。
 
-## Bonus: the same for tmux's prefix key
+## おまけ: tmux の prefix でも同じことをする
 
-Typing the tmux prefix while the IME is on turns the following key into kana. This makes the prefix switch the IME to alphanumeric first (`C-t` as the prefix here; `C-t C-t` sends a literal `C-t`):
+IME がオンのまま tmux の prefix を打つと、次のキーがかなになって操作が化けます。prefix を押した瞬間に英数へ戻す設定です（ここでは prefix が `C-t`。`C-t C-t` で `C-t` そのものを送ります）。
 
 ```tmux
 set -g prefix C-t
@@ -62,16 +62,16 @@ if-shell 'command -v macism' \
   'set -g prefix None ; bind -n C-t switch-client -T prefix \; run-shell -b "macism com.apple.keylayout.ABC" ; bind C-t send-keys C-t'
 ```
 
-tmux treats the `prefix` key before root bindings, so `prefix` is set to `None` and `C-t` is bound in the root table instead. Because there is no real prefix any more, a status bar that tests `client_prefix` will not light up; test `client_key_table` instead.
+tmux は `prefix` に指定したキーを root の割り当てより先に処理するので、`prefix` は `None` にして、root の `C-t` の割り当てで「英数に戻して prefix テーブルへ入る」形にしています。本物の prefix が無くなるので、ステータスバーで待ち状態を出すときは `client_prefix` ではなく `client_key_table` で判定してください。
 
-## Tests
+## テスト
 
 ```zsh
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5; the macOS branch is tested only with a fake `macism`.
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）です。macOS の分岐は、偽の `macism` でしか試していません。
 
-## License
+## ライセンス
 
 MIT
