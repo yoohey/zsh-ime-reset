@@ -7,9 +7,10 @@ zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を
 | 環境 | 使うコマンド | 必要なもの |
 |---|---|---|
 | Linux（fcitx5） | `fcitx5-remote -c` | fcitx5 |
+| Linux（ibus。Fedora・Ubuntu など） | `ibus engine xkb:jp::jpn` | ibus。英語配列なら、読み込む前に `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 
-どちらのコマンドも無い環境（サーバー、fcitx5 の無い WSL2）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
+これらのコマンドが無い環境（サーバー、fcitx5 の無い WSL2）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
 
 ## 入れ方
 
@@ -34,6 +35,15 @@ fi
 ```
 
 ```zsh
+# Linux (ibus。英語配列なら xkb:us::eng)
+if (( $+commands[ibus] )); then
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
+```
+
+```zsh
 # macOS (macism)
 if (( $+commands[macism] )); then
   _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
@@ -44,7 +54,7 @@ fi
 
 fcitx5 や macism が入っていない環境で貼ると、Enter のたびに Fedora の「パッケージをインストールしますか？」（command-not-found）が出てしまうので、`if` で、コマンドがあるときだけ登録するようにしています。
 
-複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus など別の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
+複数のマシンで同じ `.zshrc` を共有しているなら、`zsh-ime-reset.plugin.zsh` のほうが向いています（使えるコマンドを自分で選び、どちらも無いマシンでは何もしません）。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。
 
 ## しくみ
 
@@ -76,7 +86,7 @@ tmux は `prefix` に指定したキーを root の割り当てより先に処�
 ./tests/run.zsh
 ```
 
-疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）です。macOS の分岐は、偽の `macism` でしか試していません。
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）と、Fedora（ibus。`ibus engine xkb:jp::jpn` で英数に切り替わること）です。macOS の分岐は、偽の `macism` でしか試していません。
 
 ## ライセンス
 

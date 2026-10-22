@@ -7,9 +7,10 @@ In a terminal you almost always want alphanumeric next. Turn the IME on by hand 
 | Where | Command used | Needs |
 |---|---|---|
 | Linux with fcitx5 | `fcitx5-remote -c` | fcitx5 |
+| Linux with ibus (Fedora, Ubuntu, ...) | `ibus engine xkb:jp::jpn` | ibus; for another layout set `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` before loading |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 
-If neither command exists (a server, WSL2 without fcitx5), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
+If none of these commands exists (a server, WSL2 without fcitx5), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
 
 ## Install
 
@@ -34,6 +35,15 @@ fi
 ```
 
 ```zsh
+# Linux (ibus; use xkb:us::eng for a US layout)
+if (( $+commands[ibus] )); then
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi
+```
+
+```zsh
 # macOS (macism)
 if (( $+commands[macism] )); then
   _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
@@ -44,7 +54,7 @@ fi
 
 The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter.
 
-If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using another IME (ibus, Windows' IME through WSL, ...)? Replace the body of `_ime_reset` with whatever command turns your IME off.
+If you share one `.zshrc` between several machines, use `zsh-ime-reset.plugin.zsh` instead: it picks the right command by itself and does nothing where neither exists. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off.
 
 ## How it works
 
@@ -76,7 +86,7 @@ tmux treats the `prefix` key before root bindings, so `prefix` is set to `None` 
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5; the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, and on Fedora with ibus (`ibus engine xkb:jp::jpn` switches to alphanumeric); the macOS branch is tested only with a fake `macism`.
 
 ## License
 

@@ -35,5 +35,6 @@ source ${(q)PLUGIN}" > $TMP/zdot/.zshrc
 case_ 'fcitx5-remote -c runs on Enter' fcitx5-remote 'fcitx5-remote -c'
 MACISM_NOW=com.apple.keylayout.Kotoeri case_ 'macism switches to ABC when not ABC' macism 'macism com.apple.keylayout.ABC'
 MACISM_NOW=com.apple.keylayout.ABC case_ 'macism does nothing when already ABC' macism ''
+case_ 'ibus engine switches to the keyboard engine' ibus 'ibus engine xkb:jp::jpn'
 case_ 'nothing happens without either command' '' ''
 exit $ng

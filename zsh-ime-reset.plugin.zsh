@@ -5,8 +5,10 @@
 #
 # Supported (used when the command is found):
 #   Linux, fcitx5   fcitx5-remote -c
+#   Linux, ibus     ibus engine xkb:jp::jpn          (Fedora, Ubuntu, ...; for another layout set
+#                                                      ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng before loading)
 #   macOS           macism com.apple.keylayout.ABC   (brew install laishulu/homebrew/macism)
-# Where neither exists (a server, WSL2 without fcitx5), it adds nothing and prints nothing.
+# Where none of them exists (a server, WSL2 without fcitx5), it adds nothing and prints nothing.
 #
 # It hooks zle-line-finish, which runs when the line is accepted, i.e. only in the terminal that has the focus.
 # A precmd hook would also fire when a background command ends, and would switch off the IME of whatever
@@ -19,6 +21,8 @@ if (( $+commands[fcitx5-remote] )); then
 elif (( $+commands[macism] )); then
   # Skipped when it is already ABC, so an ordinary Enter does no extra work
   _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+elif (( $+commands[ibus] )); then
+  _ime_reset() { ibus engine ${ZSH_IME_RESET_IBUS_ENGINE:-xkb:jp::jpn} &> /dev/null }
 else
   return 0
 fi
