@@ -21,7 +21,7 @@
 # - Enter only writes "off" into the FIFO (no waiting). When nobody reads it (not started yet, timed out, crashed),
 #   the write fails at once, and the relay and PowerShell are started (about 1.5 s until the first switch).
 # - The relay sends the C# definitions below first, then only a fixed line per "off"; it never runs what is
-#   written into the FIFO. No .ps1 file is read, so the PowerShell execution policy does not matter.
+#   written into the FIFO. If PowerShell has died, the relay starts a new one and sends the line again. No .ps1 file is read, so the PowerShell execution policy does not matter.
 # - After ZSH_IME_RESET_WSL_IDLE seconds (default 600) without any Enter, the relay ends, and PowerShell ends
 #   with it. Set it before loading; it applies to PowerShell started from then on.
 # - ZSH_IME_RESET_WSL=0 treats WSL as plain Linux (fcitx5/ibus in WSLg); =1 forces this branch. It is checked
@@ -64,13 +64,19 @@ EOF
     (
       # Also open for writing, so the relay does not see end-of-file each time a shell closes the FIFO
       exec 3<> $_ime_reset_wsl_fifo
-      {
-        print -r -- $_ime_reset_wsl_defs; print   # the empty line ends the statement
-        local line
-        while read -r -t ${ZSH_IME_RESET_WSL_IDLE:-600} -u 3 line; do
-          [[ $line == off ]] && print -r -- '[ZshImeReset]::Off()'
-        done
-      } | ${commands[setsid]:+setsid} $_ime_reset_wsl_ps -NoProfile -NonInteractive -Command - &> /dev/null 3>&-
+      local line ps
+      ps_start() {   # PowerShell reads from the fd $ps; it ends when $ps is closed (time-out, or the relay ends)
+        exec {ps}> >(exec ${commands[setsid]:+setsid} $_ime_reset_wsl_ps -NoProfile -NonInteractive -Command - &> /dev/null 3>&-)
+        print -ru $ps -- $_ime_reset_wsl_defs; print -u $ps   # the empty line ends the statement
+      }
+      ps_start
+      trap '' PIPE
+      while read -r -t ${ZSH_IME_RESET_WSL_IDLE:-600} -u 3 line; do
+        [[ $line == off ]] || continue
+        # If PowerShell has died, the write fails: start a new one and send it again, so no Enter is missed
+        print -ru $ps -- '[ZshImeReset]::Off()' 2> /dev/null ||
+          { exec {ps}>&-; ps_start; print -ru $ps -- '[ZshImeReset]::Off()' 2> /dev/null }
+      done
     ) < /dev/null &> /dev/null &!
     # Wait until the relay has opened the FIFO (a few ms; at most 0.5 s)
     local fd

@@ -77,7 +77,7 @@ each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
   ```
 - **Starting takes about 1.5 s.** Right after opening a shell, or on the first Enter after the time-out, the switch comes a little late; if you move to another window in that moment, that window's IME is closed instead.
 - PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and the like). Left on the terminal in the background, it is stopped when WSL touches the terminal, so the IME stays on and the terminal seems to hang.
-- If PowerShell crashes, Enter never hangs. One Enter right after the crash may be missed; the next one starts it again.
+- If PowerShell crashes, Enter never hangs: on the next Enter the relay starts a new one and sends it again (about 1.5 s late then). If the relay itself is gone, the next Enter starts both again.
 - No `.ps1` file is read, so the PowerShell execution policy does not matter. The relay sends PowerShell only one fixed line that closes the IME; it never runs what is written into the pipe. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable only by you.
 - WSL is checked before fcitx5 (a `fcitx5-remote` installed for WSLg does not reach the Windows IME). To use fcitx5 or ibus inside WSL instead, put `ZSH_IME_RESET_WSL=0` before loading.
 - Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal and Google Japanese Input. Microsoft IME and other terminals are not tried yet.
