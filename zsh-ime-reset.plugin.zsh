@@ -21,7 +21,8 @@
 # - Enter only writes "off" into the FIFO (no waiting). When nobody reads it (not started yet, timed out, crashed),
 #   the write fails at once, and the relay and PowerShell are started (about 1.5 s until the first switch).
 # - The relay sends the C# definitions below first, then only a fixed line per "off"; it never runs what is
-#   written into the FIFO. If PowerShell has died, the relay starts a new one and sends the line again. No .ps1 file is read, so the PowerShell execution policy does not matter.
+#   written into the FIFO. If PowerShell has died, the relay starts a new one and sends the line again.
+#   No .ps1 file is read, so the PowerShell execution policy does not matter.
 # - After ZSH_IME_RESET_WSL_IDLE seconds (default 600) without any Enter, the relay ends, and PowerShell ends
 #   with it. Set it before loading; it applies to PowerShell started from then on.
 # - ZSH_IME_RESET_WSL=0 treats WSL as plain Linux (fcitx5/ibus in WSLg); =1 forces this branch. It is checked
@@ -31,7 +32,8 @@
 
 if [[ ${ZSH_IME_RESET_WSL:-} == 1 ]] ||
    [[ ${ZSH_IME_RESET_WSL:-} != 0 && -r /proc/version && $(</proc/version) == *[Mm]icrosoft* ]]; then
-  typeset -g _ime_reset_wsl_ps=${commands[powershell.exe]:-/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe}
+  typeset -g _ime_reset_wsl_ps=${commands[powershell.exe]}
+  [[ -n $_ime_reset_wsl_ps ]] || _ime_reset_wsl_ps=/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe
   [[ -x $_ime_reset_wsl_ps ]] || return 0
   zmodload zsh/system zsh/zselect || return 0
   typeset -g _ime_reset_wsl_fifo=${XDG_RUNTIME_DIR:-/tmp}/zsh-ime-reset-$UID.fifo
@@ -76,7 +78,8 @@ EOF
       [[ -n $lock ]] && exec {lock}>&-
       local line ps
       ps_start() {   # PowerShell reads from the fd $ps; it ends when $ps is closed (time-out, or the relay ends)
-        exec {ps}> >(exec ${commands[setsid]:+setsid} $_ime_reset_wsl_ps -NoProfile -NonInteractive -Command - &> /dev/null 3>&-)
+        exec {ps}> >(exec ${commands[setsid]:+setsid} $_ime_reset_wsl_ps -NoProfile -NonInteractive -Command - \
+          &> /dev/null 3>&-)
         print -ru $ps -- $_ime_reset_wsl_defs; print -u $ps   # the empty line ends the statement
       }
       ps_start
@@ -95,7 +98,7 @@ EOF
       zselect -t 1
     }
     [[ -n $lock ]] && zsystem flock -u $lock
-    return ok
+    return $ok
   }
   _ime_reset() {
     local fd
@@ -105,7 +108,9 @@ EOF
   }
   # Start it now if it is not running, so it is ready by the first Enter (only where Enter can come: line editing
   # on and commands read from a terminal, i.e. not "zsh -i -c ...")
-  [[ -o zle && -t 0 && -z $ZSH_EXECUTION_STRING ]] && () { local fd; if _ime_reset_wsl_open fd; then exec {fd}>&-; else _ime_reset_wsl_start; fi }
+  if [[ -o zle && -t 0 && -z $ZSH_EXECUTION_STRING ]]; then
+    () { local fd; if _ime_reset_wsl_open fd; then exec {fd}>&-; else _ime_reset_wsl_start; fi }
+  fi
 elif (( $+commands[fcitx5-remote] )); then
   _ime_reset() { fcitx5-remote -c &> /dev/null }
 elif (( $+commands[macism] )); then
