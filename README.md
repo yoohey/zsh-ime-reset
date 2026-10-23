@@ -9,8 +9,9 @@ zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を
 | Linux（fcitx5） | `fcitx5-remote -c` | fcitx5 |
 | Linux（ibus。Fedora・Ubuntu など） | `ibus engine xkb:jp::jpn` | ibus。英語配列なら、読み込む前に `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
+| WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。[WSL2 の注意](#wsl2-の注意) |
 
-これらのコマンドが無い環境（サーバー、fcitx5 の無い WSL2）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
+これらのコマンドが無い環境（サーバーなど）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
 
 ## 入れ方
 
@@ -23,7 +24,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### `.zshrc` にそのまま貼る
 
-数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、git で入れてください。
 
 ```zsh
 # Linux: fcitx5 があれば fcitx5、なければ ibus（英語配列なら xkb:us::eng）
@@ -59,6 +60,28 @@ fi
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
   ```
 
+## WSL2 の注意
+
+WSL の中の Linux のプログラムは、Windows の IME を直接は触れません。そこで、Windows 付属の PowerShell を 1 つだけ常駐させ、Enter のたびに、前面のウィンドウ（Enter を押したターミナル）の IME を閉じてもらいます。
+
+```
+各 zsh --「off」--> 名前付きパイプ（FIFO） --> 中継（zsh） --> powershell.exe
+```
+
+- **Enter のときの処理は、パイプに 1 行書くだけ**です（待ちません）。PowerShell は、開いているシェルの数によらず、PC 全体で 1 つ（約 80MB）です。
+- **使わなければ、自分で終わります。**最後の Enter から 10 分たつと、中継と PowerShell が終わります。次の Enter で起動し直します。時間は、読み込む前に秒で変えられます（その後に起動する分から効きます）。
+
+  ```zsh
+  ZSH_IME_RESET_WSL_IDLE=1800   # 30 分
+  source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+  ```
+- **起動には約 1.5 秒かかります。**シェルを開いた直後や、時間切れのあとの最初の Enter では、少し遅れて英数に戻ります。その間に別のウィンドウへ切り替えると、そちらの IME が閉じます。
+- PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動します。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、端末も固まったようになるためです。
+- PowerShell が落ちても、Enter が固まることはありません。落ちたあとの 1 回は効かないことがあり、その次の Enter で起動し直します。
+- `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ありません。中継が PowerShell に送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容を、そのまま実行することはありません。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
+- WSL の判定は、fcitx5 より先に行います（WSLg 用に `fcitx5-remote` が入っていても、それは Windows の IME には効かないため）。WSL の中の fcitx5・ibus を使いたいときは、読み込む前に `ZSH_IME_RESET_WSL=0` を書いてください。
+- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）、Windows Terminal、Google 日本語入力です。Microsoft IME と、ほかのターミナルでは、まだ試していません。
+
 ## しくみ
 
 `zle-line-finish` のフックを使います。入力した行が確定したとき、つまりフォーカスのあるターミナルでだけ動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので使いません。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
@@ -91,7 +114,7 @@ ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（
 ./tests/run.zsh
 ```
 
-疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）と、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）です。macOS の分岐は、偽の `macism` でしか試していません。
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism`・`ibus`・`powershell.exe` を呼ぶかを調べます。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）、WSL2 の Ubuntu 24.04 と Debian 13（試験と、Windows Terminal＋Google 日本語入力での実際の動き。試験は Ubuntu で流した）です。macOS の分岐は、偽の `macism` でしか試していません。
 
 ## 解説記事
 

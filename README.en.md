@@ -9,8 +9,9 @@ In a terminal you almost always want alphanumeric next. Turn the IME on by hand 
 | Linux with fcitx5 | `fcitx5-remote -c` | fcitx5 |
 | Linux with ibus (Fedora, Ubuntu, ...) | `ibus engine xkb:jp::jpn` | ibus; for another layout set `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` before loading |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
+| WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | nothing (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
 
-If none of these commands exists (a server, WSL2 without fcitx5), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
+If none of these applies (a server, for one), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
 
 ## Install
 
@@ -23,7 +24,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### Or paste it into your `.zshrc`
 
-It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing.
+It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing. The WSL2 part is longer; install it with git.
 
 ```zsh
 # Linux: fcitx5 if present, otherwise ibus (use xkb:us::eng for a US layout)
@@ -59,6 +60,28 @@ The `if` registers the hook only when the command exists. Without it, a machine 
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
   ```
 
+## WSL2 notes
+
+A Linux program inside WSL cannot touch the Windows IME. So one PowerShell (part of Windows) is kept running, and on every Enter it closes the IME of the foreground window — the terminal where you pressed Enter.
+
+```
+each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
+```
+
+- **Enter only writes one line into the pipe** (no waiting). There is one PowerShell for the whole PC (about 80 MB), however many shells are open.
+- **It ends by itself when unused.** 10 minutes after the last Enter, the relay and PowerShell end; the next Enter starts them again. Change the time, in seconds, before loading (it applies to PowerShell started from then on):
+
+  ```zsh
+  ZSH_IME_RESET_WSL_IDLE=1800   # 30 minutes
+  source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+  ```
+- **Starting takes about 1.5 s.** Right after opening a shell, or on the first Enter after the time-out, the switch comes a little late; if you move to another window in that moment, that window's IME is closed instead.
+- PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and the like). Left on the terminal in the background, it is stopped when WSL touches the terminal, so the IME stays on and the terminal seems to hang.
+- If PowerShell crashes, Enter never hangs. One Enter right after the crash may be missed; the next one starts it again.
+- No `.ps1` file is read, so the PowerShell execution policy does not matter. The relay sends PowerShell only one fixed line that closes the IME; it never runs what is written into the pipe. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable only by you.
+- WSL is checked before fcitx5 (a `fcitx5-remote` installed for WSLg does not reach the Windows IME). To use fcitx5 or ibus inside WSL instead, put `ZSH_IME_RESET_WSL=0` before loading.
+- Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal and Google Japanese Input. Microsoft IME and other terminals are not tried yet.
+
 ## How it works
 
 It registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only in the terminal that has the focus. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
@@ -91,7 +114,7 @@ With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::e
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, and on Fedora with ibus (the pasted block switches back on every Enter); the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal and Google Japanese Input; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
 
 ## Article (Japanese)
 
