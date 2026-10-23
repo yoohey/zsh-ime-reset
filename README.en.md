@@ -75,7 +75,7 @@ each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
   ZSH_IME_RESET_WSL_IDLE=1800   # 30 minutes
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
   ```
-- **Starting takes about 1.5 s.** Right after opening a shell, or on the first Enter after the time-out, the switch comes a little late; if you move to another window in that moment, that window's IME is closed instead.
+- **Starting takes about 1.5 s** — and noticeably longer for the first start after rebooting the PC (PowerShell and .NET loading, the first run of the C# compiler). Right after opening a shell, or on the first Enter after the time-out, the switch comes a little late (Enters pressed meanwhile take effect once it is ready); if you move to another window in that moment, that window's IME is closed instead.
 - PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and the like). Left on the terminal in the background, it is stopped when WSL touches the terminal, so the IME stays on and the terminal seems to hang.
 - If PowerShell crashes, Enter never hangs: on the next Enter the relay starts a new one and sends it again (about 1.5 s late then). If the relay itself is gone, the next Enter starts both again.
 - No `.ps1` file is read, so the PowerShell execution policy does not matter. The relay sends PowerShell only one fixed line that closes the IME; it never runs what is written into the pipe. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable only by you.

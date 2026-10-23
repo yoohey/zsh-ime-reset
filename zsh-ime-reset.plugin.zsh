@@ -58,12 +58,22 @@ EOF
   _ime_reset_wsl_start() {
     [[ -e $_ime_reset_wsl_fifo ]] || mkfifo -m 600 $_ime_reset_wsl_fifo 2> /dev/null
     [[ -p $_ime_reset_wsl_fifo && -O $_ime_reset_wsl_fifo ]] || return 1
+    # One shell at a time (shells opened together, e.g. at login, would each start one). The lock is released
+    # when this function returns, or when the shell dies.
+    local lock fd
+    local lockfile=${_ime_reset_wsl_fifo%.fifo}.lock
+    [[ -e $lockfile ]] || : >> $lockfile   # zsystem flock does not create it
+    [[ -O $lockfile ]] && zsystem flock -t 2 -f lock $lockfile 2> /dev/null
+    if _ime_reset_wsl_open fd; then   # another shell has started it meanwhile
+      exec {fd}>&-; [[ -n $lock ]] && zsystem flock -u $lock; return 0
+    fi
     # Detached from the terminal: PowerShell in a new session (setsid), the relay without stdin/stdout/stderr on it.
     # Otherwise WSL's /init, which runs powershell.exe, touches the terminal from the background and is stopped
     # (SIGTTOU), and the IME stays on.
     (
       # Also open for writing, so the relay does not see end-of-file each time a shell closes the FIFO
       exec 3<> $_ime_reset_wsl_fifo
+      [[ -n $lock ]] && exec {lock}>&-
       local line ps
       ps_start() {   # PowerShell reads from the fd $ps; it ends when $ps is closed (time-out, or the relay ends)
         exec {ps}> >(exec ${commands[setsid]:+setsid} $_ime_reset_wsl_ps -NoProfile -NonInteractive -Command - &> /dev/null 3>&-)
@@ -79,12 +89,13 @@ EOF
       done
     ) < /dev/null &> /dev/null &!
     # Wait until the relay has opened the FIFO (a few ms; at most 0.5 s)
-    local fd
+    local ok=1
     repeat 50 {
-      if _ime_reset_wsl_open fd; then exec {fd}>&-; return 0; fi
+      if _ime_reset_wsl_open fd; then exec {fd}>&-; ok=0; break; fi
       zselect -t 1
     }
-    return 1
+    [[ -n $lock ]] && zsystem flock -u $lock
+    return ok
   }
   _ime_reset() {
     local fd
