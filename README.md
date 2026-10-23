@@ -9,7 +9,7 @@ zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を
 | Linux（fcitx5） | `fcitx5-remote -c` | fcitx5 |
 | Linux（ibus。Fedora・Ubuntu など） | `ibus engine xkb:jp::jpn` | ibus。英語配列なら、読み込む前に `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
-| WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。[WSL2 の注意](#wsl2-の注意) |
+| WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。別ファイル `zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意) |
 
 これらのコマンドが無い環境（サーバーなど）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
 
@@ -24,7 +24,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### `.zshrc` にそのまま貼る
 
-数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、git で入れてください。
+数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
 
 ```zsh
 # Linux: fcitx5 があれば fcitx5、なければ ibus（英語配列なら xkb:us::eng）
@@ -62,29 +62,36 @@ fi
 
 ## WSL2 の注意
 
+**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）です。** Windows の IME を閉じるには、常駐する PowerShell が要り、ほかの環境に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter で英数に戻る）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、このファイルを読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
+
+```zsh
+git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
+echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh' >> ~/.zshrc
+```
+
 WSL の中の Linux のプログラムは、Windows の IME を直接は触れません。そこで、Windows 付属の PowerShell を 1 つだけ常駐させ、Enter のたびに、前面のウィンドウ（Enter を押したターミナル）の IME を閉じてもらいます。
 
 ```
 各 zsh --「off」--> 名前付きパイプ（FIFO） --> 中継（zsh） --> powershell.exe
 ```
 
+- **閉じるのは、前面のウィンドウの IME です。** Enter を押したターミナルがフォーカスされているときは、それがそのターミナルです。フォーカスの無いターミナルで Enter が起きたとき（tmux の `send-keys`、AI のツールが裏のペインでコマンドを実行したときなど）は、そのとき前面にあるウィンドウの IME が閉じます。別のアプリで日本語を打っている最中でも、閉じます。
 - **Enter のときの処理は、パイプに 1 行書くだけ**です（待ちません）。PowerShell は、開いているシェルの数によらず、PC 全体で 1 つ（約 80MB）です。
 - **使わなければ、自分で終わります。**最後の Enter から 10 分たつと、中継と PowerShell が終わります。次の Enter で起動し直します。時間は、読み込む前に秒で変えられます（その後に起動する分から効きます）。
 
   ```zsh
   ZSH_IME_RESET_WSL_IDLE=1800   # 30 分
-  source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+  source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh
   ```
 - **起動には約 1.5 秒かかります。**シェルを開いた直後や、時間切れのあとの最初の Enter では、少し遅れて英数に戻ります。**PC を再起動した直後の最初の起動は、さらに時間がかかります**（PowerShell と .NET の読み込み、C# のコンパイラの初回の起動など）。その間に押した Enter の分は、準備ができてから順に効きます。その間に別のウィンドウへ切り替えると、そちらの IME が閉じます。
 - PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動します。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、端末も固まったようになるためです。
 - PowerShell が落ちても、Enter が固まることはありません。次の Enter で、中継が PowerShell を起動し直して送り直します（そのときは約 1.5 秒遅れます）。中継ごと止まっていたときも、次の Enter で起動し直します。
 - `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ありません。中継が PowerShell に送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容を、そのまま実行することはありません。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
-- WSL の判定は、fcitx5 より先に行います（WSLg 用に `fcitx5-remote` が入っていても、それは Windows の IME には効かないため）。WSL の中の fcitx5・ibus を使いたいときは、読み込む前に `ZSH_IME_RESET_WSL=0` を書いてください。
 - 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）、Windows Terminal、Google 日本語入力です。Microsoft IME と、ほかのターミナルでは、まだ試していません。
 
 ## しくみ
 
-`zle-line-finish` のフックを使います。入力した行が確定したとき、つまりフォーカスのあるターミナルでだけ動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので使いません。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
+`zle-line-finish` のフックを使います。入力した行が確定したとき、つまり、そのターミナルで Enter が押されたときだけ動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので使いません。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
 
 注意: IME の変換を確定する Enter は zsh に届かないので、そのときは戻りません。次の Enter で戻ります。
 

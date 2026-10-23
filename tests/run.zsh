@@ -13,7 +13,7 @@ mkdir -p $TMP/sys && ln -s ${commands[sh]} ${commands[mkfifo]} $TMP/sys/ || exit
 ng=0
 
 # case <label> <command to fake> <expected log, '' for none>
-# The WSL branch is switched off (ZSH_IME_RESET_WSL=0) unless PRE says otherwise, so this also runs on WSL.
+# PRE: shell lines to run before loading the plugin; PLUGIN: the file to load (default: zsh-ime-reset.plugin.zsh).
 case_() {
   local label=$1 cmd=$2 want=$3 out=
   rm -rf $TMP/bin $TMP/log $TMP/zdot; mkdir -p $TMP/bin $TMP/zdot
@@ -29,7 +29,7 @@ echo \"$cmd \$*\" >> $TMP/log" > $TMP/bin/$cmd
     chmod +x $TMP/bin/$cmd
   fi
   print -r -- "PROMPT='P> '
-${PRE:-ZSH_IME_RESET_WSL=0}
+$PRE
 source ${(q)PLUGIN}" > $TMP/zdot/.zshrc
   zpty -b t "PATH=$TMP/bin:$TMP/sys ZDOTDIR=$TMP/zdot HOME=$TMP ${commands[zsh]} -i" || return 1
   sleep 1
@@ -47,6 +47,6 @@ MACISM_NOW=com.apple.keylayout.Kotoeri case_ 'macism switches to ABC when not AB
 MACISM_NOW=com.apple.keylayout.ABC case_ 'macism does nothing when already ABC' macism ''
 case_ 'ibus engine switches to the keyboard engine' ibus 'ibus engine xkb:jp::jpn'
 case_ 'nothing happens without either command' '' ''
-PRE="ZSH_IME_RESET_WSL=1 XDG_RUNTIME_DIR=$TMP ZSH_IME_RESET_WSL_IDLE=3" \
-  case_ 'WSL: Enter makes the shared PowerShell close the IME' powershell.exe '[ZshImeReset]::Off()'
+PLUGIN=${0:A:h:h}/zsh-ime-reset-wsl.plugin.zsh PRE="XDG_RUNTIME_DIR=$TMP ZSH_IME_RESET_WSL_IDLE=3" \
+  case_ 'WSL file: Enter makes the shared PowerShell close the IME' powershell.exe '[ZshImeReset]::Off()'
 exit $ng

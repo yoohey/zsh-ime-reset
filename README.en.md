@@ -9,7 +9,7 @@ In a terminal you almost always want alphanumeric next. Turn the IME on by hand 
 | Linux with fcitx5 | `fcitx5-remote -c` | fcitx5 |
 | Linux with ibus (Fedora, Ubuntu, ...) | `ibus engine xkb:jp::jpn` | ibus; for another layout set `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` before loading |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
-| WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | nothing (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
+| WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | a separate file, `zsh-ime-reset-wsl.plugin.zsh` (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
 
 If none of these applies (a server, for one), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
 
@@ -24,7 +24,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 
 ### Or paste it into your `.zshrc`
 
-It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing. The WSL2 part is longer; install it with git.
+It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing. The WSL2 part is longer, so it is a separate file (see "WSL2 notes" below).
 
 ```zsh
 # Linux: fcitx5 if present, otherwise ibus (use xkb:us::eng for a US layout)
@@ -62,29 +62,36 @@ The `if` registers the hook only when the command exists. Without it, a machine 
 
 ## WSL2 notes
 
+**WSL2 is a separate file, `zsh-ime-reset-wsl.plugin.zsh`.** Closing the Windows IME needs a resident PowerShell, which is too much to carry into other systems. It feels the same (Enter puts you back to alphanumeric), but **on WSL2 load this file instead of `zsh-ime-reset.plugin.zsh`** (not both). It does nothing where `powershell.exe` is not found.
+
+```zsh
+git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
+echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh' >> ~/.zshrc
+```
+
 A Linux program inside WSL cannot touch the Windows IME. So one PowerShell (part of Windows) is kept running, and on every Enter it closes the IME of the foreground window — the terminal where you pressed Enter.
 
 ```
 each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
 ```
 
+- **It closes the IME of the window in front.** When the terminal you pressed Enter in has the focus, that is the terminal. When an Enter comes from a terminal without the focus (tmux `send-keys`, an AI tool running a command in a background pane), the IME of whatever window is in front then is closed — even while you type Japanese in another app.
 - **Enter only writes one line into the pipe** (no waiting). There is one PowerShell for the whole PC (about 80 MB), however many shells are open.
 - **It ends by itself when unused.** 10 minutes after the last Enter, the relay and PowerShell end; the next Enter starts them again. Change the time, in seconds, before loading (it applies to PowerShell started from then on):
 
   ```zsh
   ZSH_IME_RESET_WSL_IDLE=1800   # 30 minutes
-  source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+  source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh
   ```
 - **Starting takes about 1.5 s** — and noticeably longer for the first start after rebooting the PC (PowerShell and .NET loading, the first run of the C# compiler). Right after opening a shell, or on the first Enter after the time-out, the switch comes a little late (Enters pressed meanwhile take effect once it is ready); if you move to another window in that moment, that window's IME is closed instead.
 - PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and the like). Left on the terminal in the background, it is stopped when WSL touches the terminal, so the IME stays on and the terminal seems to hang.
 - If PowerShell crashes, Enter never hangs: on the next Enter the relay starts a new one and sends it again (about 1.5 s late then). If the relay itself is gone, the next Enter starts both again.
 - No `.ps1` file is read, so the PowerShell execution policy does not matter. The relay sends PowerShell only one fixed line that closes the IME; it never runs what is written into the pipe. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable only by you.
-- WSL is checked before fcitx5 (a `fcitx5-remote` installed for WSLg does not reach the Windows IME). To use fcitx5 or ibus inside WSL instead, put `ZSH_IME_RESET_WSL=0` before loading.
 - Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal and Google Japanese Input. Microsoft IME and other terminals are not tried yet.
 
 ## How it works
 
-It registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only in the terminal that has the focus. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
+It registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only when Enter is pressed in that terminal. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
 
 Note: the Enter that confirms an IME conversion does not reach zsh, so it does not switch; the next Enter does.
 
