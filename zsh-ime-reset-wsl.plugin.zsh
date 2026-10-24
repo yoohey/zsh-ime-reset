@@ -1,5 +1,19 @@
 # zsh-ime-reset-wsl - WSL2 only: switch the Windows IME back to alphanumeric every time you press Enter at the zsh prompt.
 #
+# 【日本語の要約】WSL2 専用。Enter のたびに、Windows 側の IME を英数に戻す。
+#   WSL の中のプログラムは Windows の IME を直接は触れないので、Windows 付属の PowerShell を PC で 1 つだけ裏で動かし、
+#   その PowerShell に、前面のウィンドウの IME を閉じてもらう。
+#     各シェル --「off」--> FIFO（名前付きパイプ） --> 中継（zsh のループ） --> powershell.exe
+#   - Enter のときは、FIFO に「off」と書くだけ（待たない）。読み手がいなければ、すぐ失敗して、中継と PowerShell を起動する
+#     （最初の切り替えまで約 1.5 秒）。
+#   - 中継は、FIFO に書かれた内容を実行せず、決まった 1 行だけを PowerShell に送る。PowerShell が落ちていたら、起動し直して
+#     送り直す。.ps1 のファイルは読まないので、実行ポリシーは関係ない。
+#   - ZSH_IME_RESET_WSL_IDLE 秒（既定 600）、Enter が無ければ、中継も PowerShell も終わる（読み込む前に設定する）。
+#   - 閉じるのは「前面のウィンドウ」の IME。フォーカスの無いターミナルで Enter が起きると（tmux の send-keys、AI のツールが
+#     裏のペインでコマンドを実行したときなど）、そのとき前面にあるウィンドウの IME が閉じる。
+#   - WSL2 では、zsh-ime-reset.plugin.zsh の代わりに、このファイルを読み込む（両方は読み込まない）。powershell.exe が無ければ何もしない。
+#   以下は、同じ内容の英語の説明。
+#
 # This is the WSL2 counterpart of zsh-ime-reset.plugin.zsh (fcitx5, ibus, macOS). Load ONE of the two, not both:
 # on WSL2 use this file; elsewhere use zsh-ime-reset.plugin.zsh. It does nothing where powershell.exe is not found.
 #
