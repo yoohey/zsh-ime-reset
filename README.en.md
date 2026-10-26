@@ -2,7 +2,7 @@
 
 You start typing a command with the Japanese input method still on, and `ls` comes out as "ｌｓ". This zsh plugin puts an end to that. [日本語](README.md)
 
-<!-- demo GIF -->
+![With the IME on, echo a Japanese word: Enter puts the IME back to alphanumeric, so the next ls is typed as it is. Clearing a Japanese line with Ctrl+U does the same](docs/demo.gif)
 
 - **After Enter runs a command, the IME is back to alphanumeric.** The next command can be typed as it is.
 - **When the cursor gets back to the head of the line, too.** For example, when `Ctrl+U` clears the line or `Ctrl+A` moves to the head.
