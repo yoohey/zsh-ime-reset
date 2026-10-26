@@ -1,8 +1,42 @@
 # zsh-ime-reset
 
-zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を英数に戻すプラグインです。カーソルが行の先頭にあるとき（先頭に着いたとき、フォーカスが戻ったとき）も戻します。[English](README.en.md)
+日本語入力がオンのままコマンドを打ち始めて、`ls` が「ｌｓ」になる。それを無くす zsh のプラグインです。[English](README.en.md)
 
-ターミナルでは、次に打つのはたいてい英数です。日本語が要るときだけ手で IME をオンにすれば、次の Enter で英数に戻るので、次のコマンドがかなで化けることがありません。
+<!-- demo GIF -->
+
+- **Enter でコマンドを実行したら、英数に戻ります。** 次のコマンドは、そのまま英数で打てます。
+- **カーソルが行の先頭に戻ったときも、英数に戻ります。** `Ctrl+U` で行を消したとき、`Ctrl+A` で先頭へ移ったときなどです。
+- **ターミナルに戻ってきたとき、カーソルが行の先頭なら、英数に戻ります。** ほかのアプリで日本語を打っていて、Alt+Tab で戻ってきたときなどです。
+
+日本語を打つときだけ、いつものキーで IME をオンにしてください。Linux（fcitx5・ibus）、macOS、WSL2（Windows の IME）で動きます。
+
+## 入れ方
+
+```zsh
+git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
+echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
+```
+
+- **macOS** は、切り替えに [macism](https://github.com/laishulu/macism) を使います: `brew install laishulu/homebrew/macism`
+- **WSL2** は、読み込むファイルが違います（`zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意)）。
+- IME を切り替えるコマンドが無い環境（サーバーなど）では、何もしません。`.zshrc` を複数のマシンで共有していても大丈夫です。
+
+## 止め方
+
+場面ごとに、変数を `0` にすると止まります。`.zshrc` の、読み込む行の前に書きます（開いているシェルで打っても、すぐに効きます）。
+
+| 変数 | 止まる場面 |
+|---|---|
+| `ZSH_IME_RESET_ON_ENTER=0` | Enter で行を確定したとき |
+| `ZSH_IME_RESET_ON_HEAD=0` | カーソルが行の先頭に着いたとき |
+| `ZSH_IME_RESET_ON_FOCUS=0` | ターミナルにフォーカスが来たとき |
+
+```zsh
+ZSH_IME_RESET_ON_FOCUS=0
+source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+```
+
+## 対応している環境
 
 | 環境 | 使うコマンド | 必要なもの |
 |---|---|---|
@@ -11,18 +45,7 @@ zsh のプロンプトで Enter を押すたびに、日本語入力（IME）を
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 | WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。別ファイル `zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意) |
 
-これらのコマンドが無い環境（サーバーなど）では、何もしません（表示もしません）。`.zshrc` を共有していても大丈夫です。
-
-## 入れ方
-
-### git で入れる
-
-```zsh
-git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
-echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
-```
-
-### `.zshrc` にそのまま貼る
+## `.zshrc` にそのまま貼る（Enter だけ）
 
 数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
 
@@ -50,20 +73,7 @@ fi
 
 `if` で、コマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまいます。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。プラグイン版（`zsh-ime-reset.plugin.zsh`）は、ほぼ同じ中身で、コメントと、ibus のエンジン名を変える環境変数が付いています。
 
-## 英数に戻す場面（プラグイン版）
-
-コマンドは行の先頭から打ち始めるので、カーソルが先頭にあるときも、次に打つのは英数のはずです。プラグイン版は、Enter のほかに、次の場面でも英数に戻します。場面ごとに、変数を `0` にすると止まります。
-
-| 変数 | 場面 | 既定 |
-|---|---|---|
-| `ZSH_IME_RESET_ON_ENTER` | Enter で行を確定したとき | オン |
-| `ZSH_IME_RESET_ON_HEAD` | カーソルが行の先頭に着いたとき（`Ctrl+A`、`Ctrl+U`、Backspace で先頭まで消したとき など） | オン |
-| `ZSH_IME_RESET_ON_FOCUS` | ターミナルにフォーカスが来たときに、カーソルが先頭なら | オン |
-
-```zsh
-ZSH_IME_RESET_ON_FOCUS=0   # フォーカスでは戻さない
-source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
-```
+## 英数に戻す場面の詳細
 
 値は、その場面が来るたびに見るので、開いているシェルで打っても、すぐに効きます（`ZSH_IME_RESET_ON_FOCUS` は、次のプロンプトから）。先頭とフォーカスは、2026-10 に足しました。前と同じ Enter だけにするなら、`ZSH_IME_RESET_ON_HEAD=0` と `ZSH_IME_RESET_ON_FOCUS=0` を書いてください。上の貼り付ける版は、Enter だけです。
 
@@ -84,7 +94,7 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 
 ## WSL2 の注意
 
-**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）です。** Windows の IME を閉じるには、常駐する PowerShell が要り、ほかの環境に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面プラグイン版)も同じ）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、このファイルを読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
+**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）です。** Windows の IME を閉じるには、常駐する PowerShell が要り、ほかの環境に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面の詳細)も同じ）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、このファイルを読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
@@ -109,7 +119,7 @@ WSL の中の Linux のプログラムは、Windows の IME を直接は触れ�
 - PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動します。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、端末も固まったようになるためです。
 - PowerShell が落ちても、Enter が固まることはありません。次の Enter で、中継が PowerShell を起動し直して送り直します（そのときは約 1.5 秒遅れます）。中継ごと止まっていたときも、次の Enter で起動し直します。
 - `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ありません。中継が PowerShell に送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容を、そのまま実行することはありません。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
-- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）、Windows Terminal、Google 日本語入力です。Microsoft IME と、ほかのターミナルでは、まだ試していません。
+- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）と Windows Terminal です。IME は、Google 日本語入力、Microsoft IME、Copilot IME のどれでも、Enter で英数に戻りました（行の先頭とフォーカスで戻すのは、WSL2 では、まだ試していません）。
 
 ## しくみ
 
@@ -145,7 +155,7 @@ ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（
 ./tests/run.zsh
 ```
 
-疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism`・`ibus`・`powershell.exe` を呼ぶかを調べます（Enter、先頭に着いたとき、フォーカスの知らせ、それぞれの変数で止まること）。先頭とフォーカスは、NixOS の foot＋tmux で実際の動きも確かめました（WSL2 と macOS では、まだ試していません）。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）、WSL2 の Ubuntu 24.04 と Debian 13（試験と、Windows Terminal＋Google 日本語入力での実際の動き。試験は Ubuntu で流した）です。macOS の分岐は、偽の `macism` でしか試していません。
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism`・`ibus`・`powershell.exe` を呼ぶかを調べます（Enter、先頭に着いたとき、フォーカスの知らせ、それぞれの変数で止まること）。先頭とフォーカスは、NixOS の foot＋tmux で実際の動きも確かめました（WSL2 と macOS では、まだ試していません）。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）、WSL2 の Ubuntu 24.04 と Debian 13（試験と、Windows Terminal での実際の動き。IME は Google 日本語入力・Microsoft IME・Copilot IME。試験は Ubuntu で流した）です。macOS の分岐は、偽の `macism` でしか試していません。
 
 ## 解説記事
 

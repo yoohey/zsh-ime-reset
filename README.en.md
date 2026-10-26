@@ -1,8 +1,42 @@
 # zsh-ime-reset
 
-Switch the input method (IME) back to alphanumeric every time you press Enter at the zsh prompt, and when the cursor is at the head of the line (it gets there, or the focus comes back). [日本語](README.md)
+You start typing a command with the Japanese input method still on, and `ls` comes out as "ｌｓ". This zsh plugin puts an end to that. [日本語](README.md)
 
-In a terminal you almost always want alphanumeric next. Turn the IME on by hand when you need to type Japanese (or any IME input); the next Enter puts you back, so the next command never starts as garbled kana.
+<!-- demo GIF -->
+
+- **After Enter runs a command, the IME is back to alphanumeric.** The next command can be typed as it is.
+- **When the cursor gets back to the head of the line, too.** For example, when `Ctrl+U` clears the line or `Ctrl+A` moves to the head.
+- **When you come back to the terminal with the cursor at the head of the line.** For example, after typing Japanese in another app and returning with Alt+Tab.
+
+Turn the IME on with your usual key only when you type Japanese (or any IME input). Works on Linux (fcitx5, ibus), macOS and WSL2 (the Windows IME).
+
+## Install
+
+```zsh
+git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
+echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
+```
+
+- **macOS** switches with [macism](https://github.com/laishulu/macism): `brew install laishulu/homebrew/macism`
+- **WSL2** loads a different file (`zsh-ime-reset-wsl.plugin.zsh`; see [WSL2 notes](#wsl2-notes)).
+- Where there is no command to switch the IME (a server, for one), it does nothing, so a `.zshrc` shared between machines is safe.
+
+## Turning it off
+
+Set a variable to `0` to turn off its moment. Put it in `.zshrc` before the `source` line (typed in a running shell, it works at once, too).
+
+| Variable | Turns off |
+|---|---|
+| `ZSH_IME_RESET_ON_ENTER=0` | when Enter accepts the line |
+| `ZSH_IME_RESET_ON_HEAD=0` | when the cursor gets to the head of the line |
+| `ZSH_IME_RESET_ON_FOCUS=0` | when the terminal gets the focus |
+
+```zsh
+ZSH_IME_RESET_ON_FOCUS=0
+source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+```
+
+## Where it works
 
 | Where | Command used | Needs |
 |---|---|---|
@@ -11,18 +45,7 @@ In a terminal you almost always want alphanumeric next. Turn the IME on by hand 
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 | WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | a separate file, `zsh-ime-reset-wsl.plugin.zsh` (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
 
-If none of these applies (a server, for one), the plugin adds nothing and prints nothing, so a shared `.zshrc` is safe.
-
-## Install
-
-### With git
-
-```zsh
-git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
-echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
-```
-
-### Or paste it into your `.zshrc`
+## Or paste it into your `.zshrc` (Enter only)
 
 It is only a few lines, so you do not need a plugin manager — or even this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing. The WSL2 part is longer, so it is a separate file (see "WSL2 notes" below).
 
@@ -50,20 +73,7 @@ fi
 
 The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off. The plugin file (`zsh-ime-reset.plugin.zsh`) is nearly the same code, with comments and a variable for the ibus engine name.
 
-## When it switches (the plugin file)
-
-A command starts at the head of the line, so alphanumeric is what comes next there too. Besides Enter, the plugin file switches back at these moments; set a variable to `0` to turn its moment off.
-
-| Variable | Moment | Default |
-|---|---|---|
-| `ZSH_IME_RESET_ON_ENTER` | Enter accepts the line | on |
-| `ZSH_IME_RESET_ON_HEAD` | the cursor moves to the head of the line (`Ctrl+A`, `Ctrl+U`, Backspace up to the head, ...) | on |
-| `ZSH_IME_RESET_ON_FOCUS` | the terminal gets the focus while the cursor is at the head | on |
-
-```zsh
-ZSH_IME_RESET_ON_FOCUS=0   # not on focus
-source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
-```
+## When it switches, in detail
 
 The variables are checked at each moment, so setting one in a running shell works at once (`ZSH_IME_RESET_ON_FOCUS` from the next prompt). The head and focus moments were added in 2026-10; for Enter only, as before, set `ZSH_IME_RESET_ON_HEAD=0` and `ZSH_IME_RESET_ON_FOCUS=0`. The pasted blocks above are Enter only.
 
@@ -84,7 +94,7 @@ The variables are checked at each moment, so setting one in a running shell work
 
 ## WSL2 notes
 
-**WSL2 is a separate file, `zsh-ime-reset-wsl.plugin.zsh`.** Closing the Windows IME needs a resident PowerShell, which is too much to carry into other systems. It feels the same (Enter puts you back to alphanumeric), but **on WSL2 load this file instead of `zsh-ime-reset.plugin.zsh`** (not both). It does nothing where `powershell.exe` is not found.
+**WSL2 is a separate file, `zsh-ime-reset-wsl.plugin.zsh`.** Closing the Windows IME needs a resident PowerShell, which is too much to carry into other systems. It feels the same (Enter and the head of the line put you back to alphanumeric; the [same moments](#when-it-switches-in-detail)), but **on WSL2 load this file instead of `zsh-ime-reset.plugin.zsh`** (not both). It does nothing where `powershell.exe` is not found.
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
@@ -109,7 +119,7 @@ each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
 - PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and the like). Left on the terminal in the background, it is stopped when WSL touches the terminal, so the IME stays on and the terminal seems to hang.
 - If PowerShell crashes, Enter never hangs: on the next Enter the relay starts a new one and sends it again (about 1.5 s late then). If the relay itself is gone, the next Enter starts both again.
 - No `.ps1` file is read, so the PowerShell execution policy does not matter. The relay sends PowerShell only one fixed line that closes the IME; it never runs what is written into the pipe. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable only by you.
-- Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal and Google Japanese Input. Microsoft IME and other terminals are not tried yet.
+- Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal. Enter switches back with Google Japanese Input, Microsoft IME and Copilot IME alike (switching at the head of the line and on focus is not tried on WSL2 yet).
 
 ## How it works
 
@@ -145,7 +155,7 @@ With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::e
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that Enter, the head of the line and focus reports call them (and that each variable turns its moment off). The head and focus moments were also checked for real with foot and tmux on NixOS (not yet on WSL2 or macOS). Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal and Google Japanese Input; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that Enter, the head of the line and focus reports call them (and that each variable turns its moment off). The head and focus moments were also checked for real with foot and tmux on NixOS (not yet on WSL2 or macOS). Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal, with Google Japanese Input, Microsoft IME and Copilot IME; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
 
 ## Article (Japanese)
 
