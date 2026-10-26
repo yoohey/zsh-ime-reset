@@ -1,6 +1,7 @@
-# zsh-ime-reset-wsl - WSL2 only: switch the Windows IME back to alphanumeric every time you press Enter at the zsh prompt.
+# zsh-ime-reset-wsl - WSL2 only: switch the Windows IME back to alphanumeric every time you press Enter at the zsh prompt,
+# and at the head of the line (the same moments as zsh-ime-reset.plugin.zsh: zsh-ime-reset-hooks.zsh).
 #
-# 【日本語の要約】WSL2 専用。Enter のたびに、Windows 側の IME を英数に戻す。
+# 【日本語の要約】WSL2 専用。Enter のたびと、行の先頭で、Windows 側の IME を英数に戻す（場面は zsh-ime-reset-hooks.zsh）。
 #   WSL の中のプログラムは Windows の IME を直接は触れないので、Windows 付属の PowerShell を PC で 1 つだけ裏で動かし、
 #   その PowerShell に、前面のウィンドウの IME を閉じてもらう。
 #     各シェル --「off」--> FIFO（名前付きパイプ） --> 中継（zsh のループ） --> powershell.exe
@@ -113,5 +114,11 @@ if [[ -o zle && -t 0 && -z $ZSH_EXECUTION_STRING ]]; then
   () { local fd; if _ime_reset_wsl_open fd; then exec {fd}>&-; else _ime_reset_wsl_start; fi }
 fi
 
-autoload -Uz add-zle-hook-widget
-add-zle-hook-widget zle-line-finish _ime_reset
+# When to switch (Enter, the head of the line, focus; each can be turned off): zsh-ime-reset-hooks.zsh next to this
+# file. Without it (only this file copied), on Enter only, as before.
+if [[ -r ${${(%):-%x}:A:h}/zsh-ime-reset-hooks.zsh ]]; then
+  source ${${(%):-%x}:A:h}/zsh-ime-reset-hooks.zsh
+else
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-finish _ime_reset
+fi

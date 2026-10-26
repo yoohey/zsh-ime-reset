@@ -1,6 +1,6 @@
 # zsh-ime-reset
 
-Switch the input method (IME) back to alphanumeric every time you press Enter at the zsh prompt. [日本語](README.md)
+Switch the input method (IME) back to alphanumeric every time you press Enter at the zsh prompt, and when the cursor is at the head of the line (it gets there, or the focus comes back). [日本語](README.md)
 
 In a terminal you almost always want alphanumeric next. Turn the IME on by hand when you need to type Japanese (or any IME input); the next Enter puts you back, so the next command never starts as garbled kana.
 
@@ -50,6 +50,28 @@ fi
 
 The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off. The plugin file (`zsh-ime-reset.plugin.zsh`) is nearly the same code, with comments and a variable for the ibus engine name.
 
+## When it switches (the plugin file)
+
+A command starts at the head of the line, so alphanumeric is what comes next there too. Besides Enter, the plugin file switches back at these moments; set a variable to `0` to turn its moment off.
+
+| Variable | Moment | Default |
+|---|---|---|
+| `ZSH_IME_RESET_ON_ENTER` | Enter accepts the line | on |
+| `ZSH_IME_RESET_ON_HEAD` | the cursor moves to the head of the line (`Ctrl+A`, `Ctrl+U`, Backspace up to the head, ...) | on |
+| `ZSH_IME_RESET_ON_FOCUS` | the terminal gets the focus while the cursor is at the head | on |
+
+```zsh
+ZSH_IME_RESET_ON_FOCUS=0   # not on focus
+source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
+```
+
+The variables are checked at each moment, so setting one in a running shell works at once (`ZSH_IME_RESET_ON_FOCUS` from the next prompt). The head and focus moments were added in 2026-10; for Enter only, as before, set `ZSH_IME_RESET_ON_HEAD=0` and `ZSH_IME_RESET_ON_FOCUS=0`. The pasted blocks above are Enter only.
+
+- **Head of the line**: only at the moment the cursor gets there (once, however often the line is redrawn while it stays). A new prompt does not count (Enter has switched already, and a prompt redrawn when a background command ends must not switch off another window's IME). Not during the incremental history search (`Ctrl+R`), where the cursor jumps with the matches.
+- **Focus**: while the line is edited, the terminal is asked to report focus (`\e[?1004h`; `\e[I` in, `\e[O` out), and asked to stop before a command runs, so the command gets no reports it did not ask for. A terminal without focus reporting ignores the request (and only this moment does not work there).
+- **In tmux**: needs `set -g focus-events on`. Only the active pane gets the reports, and selecting a pane or a window sends one too, so moving to a pane with an empty prompt switches back. If **another client on the same window** never reports focus (it stays "focused": a terminal built into an app, for example), tmux keeps the pane focused and the reports stop. Look for clients you do not use that are `focused` with `tmux list-clients -F '#{client_tty} #{client_flags}'`, and detach them (`tmux detach-client -t <tty>`).
+- When the focus goes out or in while the completion menu (`zstyle ':completion:*' menu select`) is open, the menu selection ends.
+
 ## Notes (ibus / GNOME)
 
 - **The top bar indicator can stay out of date.** After `ibus engine` switches from outside, the input is alphanumeric again, but GNOME's top bar may keep showing "あ" (seen on Fedora: the input-source menu still has the Japanese source selected, and picking a source again changes it to "en"). Typing is alphanumeric, so it works; only the display lags.
@@ -91,9 +113,11 @@ each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
 
 ## How it works
 
-It registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only when Enter is pressed in that terminal. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
+For Enter it registers a `zle-line-finish` hook, which runs when the line is accepted — that is, only when Enter is pressed in that terminal. A `precmd` hook is a bad fit: it also fires when a background command ends, and would switch off the IME of whatever window has the focus at that moment. On macOS the switch is skipped when the source is already ABC, so an ordinary Enter does no extra work.
 
 Note: the Enter that confirms an IME conversion does not reach zsh, so it does not switch; the next Enter does.
+
+The head of the line is watched with a `zle-line-pre-redraw` hook on `$CURSOR`, and focus with a widget bound to `\e[I` that checks the cursor is at 0. `\e[O` is bound to a widget that does nothing (unbound, it would be read as Esc and `[O`; in vi command mode, `O` opens a line). The moments live in `zsh-ime-reset-hooks.zsh`, read by both `zsh-ime-reset.plugin.zsh` and the WSL2 file; with the plugin file alone, it switches on Enter only, as before.
 
 ## Bonus: the same for tmux's prefix key
 
@@ -121,7 +145,7 @@ With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::e
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that Enter calls them. Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal and Google Japanese Input; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that Enter, the head of the line and focus reports call them (and that each variable turns its moment off). The head and focus moments were also checked for real with foot and tmux on NixOS (not yet on WSL2 or macOS). Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal and Google Japanese Input; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
 
 ## Article (Japanese)
 
