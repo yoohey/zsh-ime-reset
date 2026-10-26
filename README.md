@@ -50,16 +50,53 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 | WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。別ファイル `zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意) |
 
-## `.zshrc` にそのまま貼る（Enter だけ）
+## `.zshrc` にそのまま貼る
 
-数行だけなのでプラグインの仕組みもこのリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
+プラグインを入れずに、`.zshrc` に貼るだけでも使えます（このリポジトリも要りません）。Linux（fcitx5・ibus）でも macOS でも、同じものを貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
 
 ```zsh
-# Linux: fcitx5 があれば fcitx5、なければ ibus（英語配列なら xkb:us::eng）
+# zsh-ime-reset（貼り付け版）: Enter・行の先頭・フォーカスで英数に戻す。Linux（fcitx5 / ibus）と macOS（macism）
 if (( $+commands[fcitx5-remote] )); then
   _ime_reset() { fcitx5-remote -c &> /dev/null }
 elif (( $+commands[ibus] )); then
-  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }   # 英語配列なら xkb:us::eng
+elif (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+fi
+if (( $+functions[_ime_reset] )); then
+  typeset -gi _ime_last=0
+  # プロンプトを出したとき: フォーカスイベントを有効にする（先頭とは数えない）
+  _ime_init() { _ime_last=0; print -n '\e[?1004h' }
+  # Enter: 英数に戻し、フォーカスイベントを無効にする
+  _ime_finish() { _ime_reset; print -n '\e[?1004l' }
+  # カーソルが先頭に着いたとき（Ctrl+R の検索中は除く）
+  _ime_redraw() {
+    (( CURSOR == 0 && _ime_last != 0 && ! ISEARCHMATCH_ACTIVE )) && _ime_reset
+    _ime_last=$CURSOR
+  }
+  # フォーカスが来たとき（\e[I）、カーソルが先頭なら。離れたとき（\e[O）は何もしない
+  _ime_focus_in() { (( CURSOR == 0 )) && _ime_reset }
+  _ime_focus_out() { }
+  zle -N _ime_focus_in; zle -N _ime_focus_out
+  bindkey '^[[I' _ime_focus_in; bindkey '^[[O' _ime_focus_out
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-init _ime_init
+  add-zle-hook-widget zle-line-finish _ime_finish
+  add-zle-hook-widget zle-line-pre-redraw _ime_redraw
+fi
+```
+
+<details>
+<summary>Enter だけの短い版</summary>
+
+```zsh
+# zsh-ime-reset（貼り付け版・Enter だけ）。Linux（fcitx5 / ibus）と macOS（macism）
+if (( $+commands[fcitx5-remote] )); then
+  _ime_reset() { fcitx5-remote -c &> /dev/null }
+elif (( $+commands[ibus] )); then
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }   # 英語配列なら xkb:us::eng
+elif (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
 fi
 if (( $+functions[_ime_reset] )); then
   autoload -Uz add-zle-hook-widget
@@ -67,16 +104,11 @@ if (( $+functions[_ime_reset] )); then
 fi
 ```
 
-```zsh
-# macOS（macism）
-if (( $+commands[macism] )); then
-  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
+</details>
 
-`if` でコマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまい辛いです。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身をその IME を切るコマンドに替えてください。プラグイン版（`zsh-ime-reset.plugin.zsh`）はほぼ同じ中身でコメントと ibus のエンジン名を変える環境変数が付いています。環境に応じて変更してください。
+`if` でコマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまい辛いです。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身をその IME を切るコマンドに替えてください。
+
+プラグイン版との違い: 場面ごとの止め方（変数）はありません。要らない場面があれば、その部分の行を消してください。また、vi のコマンドモードのキー割り当ては入れていません。
 
 ## 英数に戻す場面の詳細
 

@@ -50,16 +50,53 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
 | WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | a separate file, `zsh-ime-reset-wsl.plugin.zsh` (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
 
-## Or paste it into your `.zshrc` (Enter only)
+## Or paste it into your `.zshrc`
 
-It is only a few lines, so you need neither a plugin manager nor this repository. Paste the block for your OS into your `.zshrc`. It does nothing where the command is missing. The WSL2 part is longer, so it is a separate file (see "WSL2 notes" below).
+You can also use it without the plugin, just pasted into your `.zshrc` (no need for this repository either). The same block works on Linux (fcitx5, ibus) and macOS. It does nothing where the command is missing. The WSL2 part is longer, so it is a separate file (see "WSL2 notes" below).
 
 ```zsh
-# Linux: fcitx5 if present, otherwise ibus (use xkb:us::eng for a US layout)
+# zsh-ime-reset (paste-in): back to alphanumeric on Enter, at the head of the line and on focus. Linux (fcitx5 / ibus) and macOS (macism)
 if (( $+commands[fcitx5-remote] )); then
   _ime_reset() { fcitx5-remote -c &> /dev/null }
 elif (( $+commands[ibus] )); then
-  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }   # xkb:us::eng for a US layout
+elif (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
+fi
+if (( $+functions[_ime_reset] )); then
+  typeset -gi _ime_last=0
+  # A new prompt: turn focus events on (not counted as reaching the head)
+  _ime_init() { _ime_last=0; print -n '\e[?1004h' }
+  # Enter: back to alphanumeric, and focus events off
+  _ime_finish() { _ime_reset; print -n '\e[?1004l' }
+  # The cursor gets to the head of the line (not during Ctrl+R)
+  _ime_redraw() {
+    (( CURSOR == 0 && _ime_last != 0 && ! ISEARCHMATCH_ACTIVE )) && _ime_reset
+    _ime_last=$CURSOR
+  }
+  # Focus in (\e[I) with the cursor at the head; focus out (\e[O) does nothing
+  _ime_focus_in() { (( CURSOR == 0 )) && _ime_reset }
+  _ime_focus_out() { }
+  zle -N _ime_focus_in; zle -N _ime_focus_out
+  bindkey '^[[I' _ime_focus_in; bindkey '^[[O' _ime_focus_out
+  autoload -Uz add-zle-hook-widget
+  add-zle-hook-widget zle-line-init _ime_init
+  add-zle-hook-widget zle-line-finish _ime_finish
+  add-zle-hook-widget zle-line-pre-redraw _ime_redraw
+fi
+```
+
+<details>
+<summary>A short version, Enter only</summary>
+
+```zsh
+# zsh-ime-reset (paste-in, Enter only). Linux (fcitx5 / ibus) and macOS (macism)
+if (( $+commands[fcitx5-remote] )); then
+  _ime_reset() { fcitx5-remote -c &> /dev/null }
+elif (( $+commands[ibus] )); then
+  _ime_reset() { ibus engine xkb:jp::jpn &> /dev/null }   # xkb:us::eng for a US layout
+elif (( $+commands[macism] )); then
+  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
 fi
 if (( $+functions[_ime_reset] )); then
   autoload -Uz add-zle-hook-widget
@@ -67,16 +104,11 @@ if (( $+functions[_ime_reset] )); then
 fi
 ```
 
-```zsh
-# macOS (macism)
-if (( $+commands[macism] )); then
-  _ime_reset() { [[ $(macism) == com.apple.keylayout.ABC ]] || macism com.apple.keylayout.ABC &> /dev/null }
-  autoload -Uz add-zle-hook-widget
-  add-zle-hook-widget zle-line-finish _ime_reset
-fi
-```
+</details>
 
-The `if` registers the hook only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter, which is painful. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off. The plugin file (`zsh-ime-reset.plugin.zsh`) is nearly the same code, with comments and a variable for the ibus engine name. Adjust it to your environment.
+The `if` registers the hooks only when the command exists. Without it, a machine lacking fcitx5 / macism (Fedora, for one) shows its "install package?" command-not-found prompt on every Enter, which is painful. Using an IME other than fcitx5, ibus or macOS's? Replace the body of `_ime_reset` with whatever command turns your IME off.
+
+Unlike the plugin, there are no variables to turn a moment off; delete the lines of a moment you do not want. Keys are not bound in vi command mode, either.
 
 ## When it switches, in detail
 
