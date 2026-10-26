@@ -1,14 +1,18 @@
 # zsh-ime-reset
 
-日本語入力がオンのままコマンドを打ち始めて、`ls` が「ｌｓ」になる。それを無くす zsh のプラグインです。[English](README.en.md)
+日本語入力がオンのままコマンドを打ち始めて、`ls` が「ｌｓ」になって、がああああああ！！となることを無くす zsh のプラグインです。[English](README.en.md)
 
 ![IME をオンにして「こんにちは」を echo すると、Enter で英数に戻り、次の ls はそのまま打てる。「てすと」を Ctrl+U で消したときも英数に戻る](docs/demo.gif)
 
-- **Enter でコマンドを実行したら、英数に戻ります。** 次のコマンドは、そのまま英数で打てます。
-- **カーソルが行の先頭に戻ったときも、英数に戻ります。** `Ctrl+U` で行を消したとき、`Ctrl+A` で先頭へ移ったときなどです。
-- **ターミナルに戻ってきたとき、カーソルが行の先頭なら、英数に戻ります。** ほかのアプリで日本語を打っていて、Alt+Tab で戻ってきたときなどです。
+以下の３つの場面で自動的に英数に戻るようにしています。
+- **Enter でコマンドを実行したら、英数に戻ります。** 次のコマンドは、IMEを切り替えせずそのまま英数で打てます。
+- **カーソルが行の先頭に戻ったときも、英数に戻ります。** `Ctrl+U` で行を消したとき、`Ctrl+A` で先頭へ移ったとき自動的に英数になります。
+- **ターミナルに戻ってきたとき（フォーカスが移ったとき）にカーソルが行の先頭なら、英数に戻ります。** ほかのアプリで日本語を打っていて、Alt+Tab で戻ってきたときなどです。
+いずれも英数を打ちたい場面なので、自動的にIMEを英数に戻します。先頭以外の場合は日本語入力中（引数など）とみなし何もしません。
 
-日本語を打つときだけ、いつものキーで IME をオンにしてください。Linux（fcitx5・ibus）、macOS、WSL2（Windows の IME）で動きます。
+日本語を打つときだけ、いつものキーで IME をオンにしてください。コマンド実行後に再び英数に戻ります。
+
+Linux（fcitx5・ibus）、macOS、WSL2（Windows の IME）で動きます。
 
 ## 入れ方
 
@@ -17,9 +21,9 @@ git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
 echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
 
-- **macOS** は、切り替えに [macism](https://github.com/laishulu/macism) を使います: `brew install laishulu/homebrew/macism`
-- **WSL2** は、読み込むファイルが違います（`zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意)）。
-- IME を切り替えるコマンドが無い環境（サーバーなど）では、何もしません。`.zshrc` を複数のマシンで共有していても大丈夫です。
+- **macOS** は切り替えに [macism](https://github.com/laishulu/macism) を使います: `brew install laishulu/homebrew/macism`
+- **WSL2** は読み込むファイルが違います（`zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意)）。
+- IME を切り替えるコマンドが無い環境（サーバーなど）では何もしません。`.zshrc` を複数のマシンで共有していても大丈夫です。
 
 ## 止め方
 
@@ -47,7 +51,7 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 
 ## `.zshrc` にそのまま貼る（Enter だけ）
 
-数行だけなので、プラグインの仕組みも、このリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
+数行だけなのでプラグインの仕組みもこのリポジトリも要りません。使っている OS の分を `.zshrc` に貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
 
 ```zsh
 # Linux: fcitx5 があれば fcitx5、なければ ibus（英語配列なら xkb:us::eng）
@@ -71,16 +75,16 @@ if (( $+commands[macism] )); then
 fi
 ```
 
-`if` で、コマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまいます。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身を、その IME を切るコマンドに替えてください。プラグイン版（`zsh-ime-reset.plugin.zsh`）は、ほぼ同じ中身で、コメントと、ibus のエンジン名を変える環境変数が付いています。
+`if` でコマンドがあるときだけフックを登録します。これが無いと、fcitx5 や macism の無いマシン（たとえば Fedora）で、Enter のたびに「パッケージをインストールしますか？」（command-not-found）が出てしまい辛いです。ibus・fcitx5・macOS 以外の IME を使っているときは、`_ime_reset` の中身をその IME を切るコマンドに替えてください。プラグイン版（`zsh-ime-reset.plugin.zsh`）はほぼ同じ中身でコメントと ibus のエンジン名を変える環境変数が付いています。環境に応じて変更してください。
 
 ## 英数に戻す場面の詳細
 
-値は、その場面が来るたびに見るので、開いているシェルで打っても、すぐに効きます（`ZSH_IME_RESET_ON_FOCUS` は、次のプロンプトから）。先頭とフォーカスは、2026-10 に足しました。前と同じ Enter だけにするなら、`ZSH_IME_RESET_ON_HEAD=0` と `ZSH_IME_RESET_ON_FOCUS=0` を書いてください。上の貼り付ける版は、Enter だけです。
+場面が来るたびに状態を見るので、開いているシェルで打ってもすぐに効きます（`ZSH_IME_RESET_ON_FOCUS` は、次のプロンプトから）。先頭とフォーカスは、2026-10 に足しました。初回公開版は Enter のときのみ英数へ戻していました。同じ Enter だけの動きにする場合は、`ZSH_IME_RESET_ON_HEAD=0` と `ZSH_IME_RESET_ON_FOCUS=0` を記載して無効にすると Enter でコマンド実行時のみ動きます。
 
-- **先頭に着いたとき**: 先頭に移った瞬間だけ戻します（先頭にいる間に何度描き直しても、1 回だけ）。新しいプロンプトは数えません（Enter で戻してあるうえ、裏のコマンドが終わって描き直したときに、別のウィンドウの IME を切らないため）。履歴の逐次検索（`Ctrl+R`）の間は、一致したところへカーソルが飛ぶので数えません。
-- **フォーカスが来たとき**: 行を編集している間だけ、ターミナルにフォーカスの出入りを知らせてもらい（`\e[?1004h`。来たら `\e[I`、離れたら `\e[O`）、コマンドを実行する前に止めます。実行したコマンドに、頼んでいない知らせは届きません。知らせに対応していないターミナルは、頼みを無視します（その場合、この場面だけ効きません）。
-- **tmux の中**: `set -g focus-events on` が要ります。知らせが届くのは選ばれているペインだけで、ペインやウィンドウを切り替えたときも届くので、先頭のプロンプトのペインに移ると英数になります。**同じウィンドウを見ている別のクライアント**が、フォーカスの知らせを送らないもの（ずっと「フォーカスあり」のまま。アプリに組み込まれたターミナルなど）だと、tmux はペインにずっとフォーカスがあるとみなすので、知らせが届かなくなります。`tmux list-clients -F '#{client_tty} #{client_flags}'` で、使っていないのに `focused` のクライアントがあれば、外してください（`tmux detach-client -t <tty>`）。
-- 補完の候補の一覧（`zstyle ':completion:*' menu select`）を出している間にフォーカスが出入りすると、一覧での選択が終わります。
+- **カーソルが先頭に着いたとき**: 先頭に移ったときに英数へ戻します。先頭へ移動するイコールコマンドをタイプするだろうということで英数にします。履歴の逐次検索（`Ctrl+R`）の間は、一致したところへカーソルが飛ぶので英数へは戻しません。
+- **ターミナルにフォーカスが来たとき**: ターミナルにフォーカスが戻り、かつ、カーソルが先頭にあったときに英数に戻ります。コマンド実行中（例えば tail などでログ監視中）は特にないもしません。フォーカスの取れないターミナルは、動かない可能性があります。
+- Tab の補完で候補を一覧から選んでいる途中（zstyle ':completion:*' menu select）にウィンドウを行き来すると、一覧が消えます。そのとき選んでいた候補は行に残るので、続けるときはもう一度 Tab を押してください。
+- **tmux の中では`set -g focus-events on` を入れておいてください**:ペインへフォーカスが移ったときに動きます（ペインやウィンドウを切り替えたときも動きます）上と同じく先頭の際に英数へ戻ります。
 
 ## 注意（ibus / GNOME）
 
@@ -94,44 +98,44 @@ fi
 
 ## WSL2 の注意
 
-**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）です。** Windows の IME を閉じるには、常駐する PowerShell が要り、ほかの環境に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面の詳細)も同じ）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、このファイルを読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
+**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）にしています。** Windows の IME を閉じるには常駐する PowerShell が要り、ほかの環境（Linux,Mac）に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面の詳細)も同じ）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、`zsh-ime-reset-wsl.plugin.zsh`を読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
 echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh' >> ~/.zshrc
 ```
 
-WSL の中の Linux のプログラムは、Windows の IME を直接は触れません。そこで、Windows 付属の PowerShell を 1 つだけ常駐させ、Enter のたびに、前面のウィンドウ（Enter を押したターミナル）の IME を閉じてもらいます。
+WSL の中の Linux のプログラムはWindows の IME を直接は触れないため、PowerShellを呼び切り替えを実現しています。Windows 付属の PowerShell を 1 つだけ常駐させ、各トリガーのたびにPowerShellをキックし、IMEを英数に戻します。
 
 ```
 各 zsh --「off」--> 名前付きパイプ（FIFO） --> 中継（zsh） --> powershell.exe
 ```
 
-- **閉じるのは、前面のウィンドウの IME です。** Enter を押したターミナルがフォーカスされているときは、それがそのターミナルです。フォーカスの無いターミナルで Enter が起きたとき（tmux の `send-keys`、AI のツールが裏のペインでコマンドを実行したときなど）は、そのとき前面にあるウィンドウの IME が閉じます。別のアプリで日本語を打っている最中でも、閉じます。
-- **Enter のときの処理は、パイプに 1 行書くだけ**です（待ちません）。PowerShell は、開いているシェルの数によらず、PC 全体で 1 つ（約 80MB）です。
-- **使わなければ、自分で終わります。**最後の Enter から 10 分たつと、中継と PowerShell が終わります。次の Enter で起動し直します。時間は、読み込む前に秒で変えられます（その後に起動する分から効きます）。
+- **英数に戻るのは、前面のウィンドウです**。 裏のペインで自動でコマンドが実行されたとき（tmux の send-keys、AI のツールなど）は、そのとき使っている別のアプリの日本語入力が切れることがあります。
+- **英数へ戻す処理は、パイプに 1 行書くだけ**です（待ちません）。PowerShell は、開いているシェルの数によらず、PC 全体で 1 つ（約 80MB）です。
+- **使わなければ、自分で終わります。**最後に英数に戻す処理をしてから 10 分たつと、中継と PowerShell が終わります。次にまた英数に戻す場面が来ると起動し直します。タイムアウトは、変数で変えられます（その後に起動する分から効きます）。
 
   ```zsh
   ZSH_IME_RESET_WSL_IDLE=1800   # 30 分
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset-wsl.plugin.zsh
   ```
-- **起動には約 1.5 秒かかります。**シェルを開いた直後や、時間切れのあとの最初の Enter では、少し遅れて英数に戻ります。**PC を再起動した直後の最初の起動は、さらに時間がかかります**（PowerShell と .NET の読み込み、C# のコンパイラの初回の起動など）。その間に押した Enter の分は、準備ができてから順に効きます。その間に別のウィンドウへ切り替えると、そちらの IME が閉じます。
-- PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動します。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、端末も固まったようになるためです。
-- PowerShell が落ちても、Enter が固まることはありません。次の Enter で、中継が PowerShell を起動し直して送り直します（そのときは約 1.5 秒遅れます）。中継ごと止まっていたときも、次の Enter で起動し直します。
-- `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ありません。中継が PowerShell に送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容を、そのまま実行することはありません。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
-- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）と Windows Terminal です。IME は、Google 日本語入力、Microsoft IME、Copilot IME のどれでも、Enter で英数に戻りました（行の先頭とフォーカスで戻すのは、WSL2 では、まだ試していません）。
+- **起動には約 1.5 秒ほどかかることがあります。**シェルを開いた直後や、時間切れのあとの最初の動きでは、少し遅れて英数に戻ります。**PC を再起動した直後の最初の起動は、さらに時間がかかる可能性があります。**（PowerShell と .NET の読み込み、C# のコンパイラの初回の起動など）。
+- PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動するようにしています。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、さらに端末も固まったようニナ手ってしますためです。
+- PowerShell が落ちても、コマンド実行やその他の操作がが固まらないようにしています。次の実行で、中継が PowerShell を起動し直して送り直します。そのときは約 1.5 秒ほどかかることがあります。
+- `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ないようにしてあります。 PowerShell へ送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容をそのまま実行することはないです。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
+- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）と Windows Terminal です。IME は、Google 日本語入力、Microsoft IME、Copilot IME のどれでも、で英数に戻ることを確認しました。
 
 ## しくみ
 
-Enter には `zle-line-finish` のフックを使います。入力した行が確定したとき、つまり、そのターミナルで Enter が押されたときだけ動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので使いません。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
+Enter 実行時は `zle-line-finish` のフックを使います。入力した行が確定したとき、つまりそのターミナルで Enter が押されたときに動きます。`precmd` だと、裏のコマンドが終わったときにも動いてしまい、そのときフォーカスのある別のウィンドウの IME を切ってしまうので不採用としました。macOS では、すでに ABC のときは切り替えを省くので、普通の Enter で余計な処理は走りません。
 
-注意: IME の変換を確定する Enter は zsh に届かないので、そのときは戻りません。次の Enter で戻ります。
+注意: IME の変換を確定する Enter は zsh に届かないので、そのときは戻りません。日本語確定→次の Enter で戻ります。
 
 先頭は `zle-line-pre-redraw` のフックで `$CURSOR` を見て、フォーカスは `\e[I` に割り当てたウィジェットで、カーソルが 0 かを見ます。`\e[O` には何もしないウィジェットを割り当てています（割り当てが無いと、Esc と `[O` に読まれます。vi のコマンドモードなら、`O` で行が開きます）。場面を見張る処理は `zsh-ime-reset-hooks.zsh` にまとめてあり、`zsh-ime-reset.plugin.zsh` と WSL 版の両方が読みます。プラグインのファイルだけを置いた場合は、前と同じく Enter だけで戻します。
 
-## おまけ: tmux の prefix でも同じことをする
+## おまけ: tmux の prefix でも同じように英数へ戻す
 
-IME がオンのまま tmux の prefix を打つと、次のキーがかなになって操作が化けます。prefix を押した瞬間に英数へ戻す設定です（ここでは prefix が `C-t`。`C-t C-t` で `C-t` そのものを送ります）。
+IME がオンのまま tmux の prefix を打つと、次のキーがかなになって操作が化けます。prefix を押した瞬間に英数へ戻すことでストレスを軽減します。（ここでは prefix が `C-t`。`C-t C-t` で `C-t` そのものを送ります）。
 
 ```tmux
 set -g prefix C-t
@@ -145,9 +149,9 @@ if-shell 'command -v macism' \
   'set -g prefix None ; bind -n C-t switch-client -T prefix \; run-shell -b "macism com.apple.keylayout.ABC" ; bind C-t send-keys C-t'
 ```
 
-tmux は `prefix` に指定したキーを root の割り当てより先に処理するので、`prefix` は `None` にして、root の `C-t` の割り当てで「英数に戻して prefix テーブルへ入る」形にしています。本物の prefix が無くなるので、ステータスバーで待ち状態を出すときは `client_prefix` ではなく `client_key_table` で判定してください。
+tmux は `prefix` に指定したキーを root の割り当てより先に処理するので、`prefix` は `None` にして、root の `C-t` の割り当てで「英数に戻して prefix テーブルへ入る」形にしています。本物の prefix が無くなるので、ステータスバーで待ち状態でなにか処理をしたいときは `client_prefix` ではなく `client_key_table` で判定してください。
 
-ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（US 配列なら `xkb:us::eng`）に、`command -v fcitx5-remote` の判定を `command -v ibus` に書き換えてください（tmux の中から呼ぶ形は、まだ試していません）。
+ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（US 配列なら `xkb:us::eng`）に、`command -v fcitx5-remote` の判定を `command -v ibus` に書き換えてください（ibusはまだしっかり確認していないですが、多分動くと思います）。
 
 ## テスト
 
