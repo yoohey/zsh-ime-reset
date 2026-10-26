@@ -13,7 +13,7 @@
 
 日本語を打つときだけ、いつものキーで IME をオンにしてください。コマンド実行後に再び英数に戻ります。
 
-Linux（fcitx5・ibus）、macOS、WSL2（Windows の IME）で動きます。
+Linux（fcitx5・ibus）、macOS、WSL（Windows の IME）で動きます。
 
 ## 入れ方
 
@@ -23,7 +23,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
 
 - **macOS** は切り替えに [macism](https://github.com/laishulu/macism) を使います: `brew install laishulu/homebrew/macism`
-- **WSL2** は読み込むファイルが違います（`zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意)）。
+- **WSL** は読み込むファイルが違います（`zsh-ime-reset-wsl.plugin.zsh`。[WSL の注意](#wsl-の注意)）。
 - IME を切り替えるコマンドが無い環境（サーバーなど）では何もしません。`.zshrc` を複数のマシンで共有していても大丈夫です。
 
 ## 止め方
@@ -48,11 +48,11 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 | Linux（fcitx5） | `fcitx5-remote -c` | fcitx5 |
 | Linux（ibus。Fedora・Ubuntu など） | `ibus engine xkb:jp::jpn` | ibus。英語配列なら、読み込む前に `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
-| WSL2（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。別ファイル `zsh-ime-reset-wsl.plugin.zsh`。[WSL2 の注意](#wsl2-の注意) |
+| WSL（Windows の IME） | 常駐させた PowerShell が、Win32 API で前面のウィンドウの IME を閉じる | なし（Windows 付属の `powershell.exe` を使う）。別ファイル `zsh-ime-reset-wsl.plugin.zsh`。[WSL の注意](#wsl-の注意) |
 
 ## `.zshrc` にそのまま貼る
 
-プラグインを入れずに、`.zshrc` に貼るだけでも使えます（このリポジトリも要りません）。Linux（fcitx5・ibus）でも macOS でも、同じものを貼ってください。コマンドが無い環境では何もしません。WSL2 の分は長いので、別ファイルにしてあります（下の「WSL2 の注意」）。
+プラグインを入れずに、`.zshrc` に貼るだけでも使えます（このリポジトリも要りません）。Linux（fcitx5・ibus）でも macOS でも、同じものを貼ってください。コマンドが無い環境では何もしません。WSL の分は長いので、別ファイルにしてあります（下の「WSL の注意」）。
 
 ```zsh
 # zsh-ime-reset（貼り付け版）: Enter・行の先頭・フォーカスで英数に戻す。Linux（fcitx5 / ibus）と macOS（macism）
@@ -129,9 +129,9 @@ fi
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
   ```
 
-## WSL2 の注意
+## WSL の注意
 
-**WSL2 だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）にしています。** Windows の IME を閉じるには常駐する PowerShell が要り、ほかの環境（Linux・macOS）に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面の詳細)も同じ）ですが、**WSL2 では `zsh-ime-reset.plugin.zsh` の代わりに、`zsh-ime-reset-wsl.plugin.zsh`を読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
+**WSL だけ、別のファイル（`zsh-ime-reset-wsl.plugin.zsh`）にしています。** Windows の IME を閉じるには常駐する PowerShell が要り、ほかの環境（Linux・macOS）に持ち込むには大きいためです。使い方は、これまでと同じ感覚（Enter や行の先頭で英数に戻る。[場面](#英数に戻す場面の詳細)も同じ）ですが、**WSL では `zsh-ime-reset.plugin.zsh` の代わりに、`zsh-ime-reset-wsl.plugin.zsh`を読み込んでください**（両方は読み込みません）。`powershell.exe` が見つからない環境では、何もしません。
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
@@ -156,7 +156,7 @@ WSL の中の Linux のプログラムはWindows の IME を直接は触れな�
 - PowerShell は、端末から切り離して（`setsid`。Debian・Ubuntu などには最初から入っています）起動するようにしています。端末につないだまま裏で動かすと、WSL が端末に触れたときに一時停止させられ、IME が戻らず、さらに端末も固まったようになってしまうためです。
 - PowerShell が落ちても、コマンド実行やその他の操作が固まらないようにしています。次の実行で、中継が PowerShell を起動し直して送り直します。そのときは 1.5 秒ほどかかることがあります。
 - `.ps1` のファイルは読み込まないので、PowerShell の実行ポリシーの設定は関係ないようにしてあります。PowerShell へ送るのは、IME を閉じる決まった 1 行だけです。パイプに書かれた内容をそのまま実行することはないです。パイプは、自分だけが読み書きできる権限で、`$XDG_RUNTIME_DIR`（無ければ `/tmp`）に作ります。
-- 確かめた環境は、Windows 11 の WSL2（Ubuntu 24.04 と、入れたばかりの Debian 13）と Windows Terminal です。IME は、Google 日本語入力、Microsoft IME、Copilot IME のどれでも英数に戻ることを確認しました。
+- 確かめた環境は、Windows 11 の WSL（Ubuntu 24.04 と、入れたばかりの Debian 13）と Windows Terminal です。IME は、Google 日本語入力、Microsoft IME、Copilot Keyboard のどれでも英数に戻ることを確認しました。
 
 ## しくみ
 
@@ -225,7 +225,7 @@ ibus の場合は、`fcitx5-remote -c` の部分を `ibus engine xkb:jp::jpn`（
 ./tests/run.zsh
 ```
 
-疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism`・`ibus`・`powershell.exe` を呼ぶかを調べます（Enter、先頭に着いたとき、フォーカスイベント、それぞれの変数で止まること）。先頭とフォーカスは、NixOS の foot＋tmux で実際の動きも確かめました（WSL2 と macOS では、まだ試していません）。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）、WSL2 の Ubuntu 24.04 と Debian 13（試験と、Windows Terminal での実際の動き。IME は Google 日本語入力・Microsoft IME・Copilot IME。試験は Ubuntu で流した）です。macOS の分岐は、偽の `macism` でしか試していません。
+疑似端末で zsh を動かし、偽の `fcitx5-remote`・`macism`・`ibus`・`powershell.exe` を呼ぶかを調べます（Enter、先頭に着いたとき、フォーカスイベント、それぞれの変数で止まること）。先頭とフォーカスは、NixOS の foot＋tmux で実際の動きも確かめました（WSL と macOS では、まだ試していません）。確かめた環境は NixOS 26.05（zsh 5.9、fcitx5）、Fedora（ibus。貼り付けた形で、Enter ごとに英数に戻ること）、WSL の Ubuntu 24.04 と Debian 13（試験と、Windows Terminal での実際の動き。IME は Google 日本語入力・Microsoft IME・Copilot Keyboard。試験は Ubuntu で流した）です。macOS の分岐は、偽の `macism` でしか試していません。
 
 ## 解説記事
 

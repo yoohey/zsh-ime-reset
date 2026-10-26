@@ -13,7 +13,7 @@ At each of them, alphanumeric is what you type next, so the IME is switched back
 
 Turn the IME on with your usual key only when you type Japanese; after the command runs, you are back to alphanumeric.
 
-Works on Linux (fcitx5, ibus), macOS and WSL2 (the Windows IME).
+Works on Linux (fcitx5, ibus), macOS and WSL (the Windows IME).
 
 ## Install
 
@@ -23,7 +23,7 @@ echo 'source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh' >> ~/.zshrc
 ```
 
 - **macOS** switches with [macism](https://github.com/laishulu/macism): `brew install laishulu/homebrew/macism`
-- **WSL2** loads a different file (`zsh-ime-reset-wsl.plugin.zsh`; see [WSL2 notes](#wsl2-notes)).
+- **WSL** loads a different file (`zsh-ime-reset-wsl.plugin.zsh`; see [WSL notes](#wsl-notes)).
 - Where there is no command to switch the IME (a server, for one), it does nothing, so a `.zshrc` shared between machines is safe.
 
 ## Turning it off
@@ -48,11 +48,11 @@ source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
 | Linux with fcitx5 | `fcitx5-remote -c` | fcitx5 |
 | Linux with ibus (Fedora, Ubuntu, ...) | `ibus engine xkb:jp::jpn` | ibus; for another layout set `ZSH_IME_RESET_IBUS_ENGINE=xkb:us::eng` before loading |
 | macOS | `macism com.apple.keylayout.ABC` | `brew install laishulu/homebrew/macism` |
-| WSL2 (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | a separate file, `zsh-ime-reset-wsl.plugin.zsh` (uses `powershell.exe`, part of Windows); see [WSL2 notes](#wsl2-notes) |
+| WSL (the Windows IME) | a resident PowerShell closes the IME of the foreground window with the Win32 API | a separate file, `zsh-ime-reset-wsl.plugin.zsh` (uses `powershell.exe`, part of Windows); see [WSL notes](#wsl-notes) |
 
 ## Or paste it into your `.zshrc`
 
-You can also use it without the plugin, just pasted into your `.zshrc` (no need for this repository either). The same block works on Linux (fcitx5, ibus) and macOS. It does nothing where the command is missing. The WSL2 part is longer, so it is a separate file (see "WSL2 notes" below).
+You can also use it without the plugin, just pasted into your `.zshrc` (no need for this repository either). The same block works on Linux (fcitx5, ibus) and macOS. It does nothing where the command is missing. The WSL part is longer, so it is a separate file (see "WSL notes" below).
 
 ```zsh
 # zsh-ime-reset (paste-in): back to alphanumeric on Enter, at the head of the line and on focus. Linux (fcitx5 / ibus) and macOS (macism)
@@ -129,9 +129,9 @@ The state is checked at each moment, so setting a variable in a running shell wo
   source ~/.zsh/zsh-ime-reset/zsh-ime-reset.plugin.zsh
   ```
 
-## WSL2 notes
+## WSL notes
 
-**WSL2 has a separate file, `zsh-ime-reset-wsl.plugin.zsh`.** Closing the Windows IME needs a resident PowerShell, which is too much to carry into other systems (Linux, macOS). It feels the same (Enter and the head of the line put you back to alphanumeric; the [same moments](#when-it-switches-in-detail)), but **on WSL2 load `zsh-ime-reset-wsl.plugin.zsh` instead of `zsh-ime-reset.plugin.zsh`** (not both). It does nothing where `powershell.exe` is not found.
+**WSL has a separate file, `zsh-ime-reset-wsl.plugin.zsh`.** Closing the Windows IME needs a resident PowerShell, which is too much to carry into other systems (Linux, macOS). It feels the same (Enter and the head of the line put you back to alphanumeric; the [same moments](#when-it-switches-in-detail)), but **on WSL load `zsh-ime-reset-wsl.plugin.zsh` instead of `zsh-ime-reset.plugin.zsh`** (not both). It does nothing where `powershell.exe` is not found.
 
 ```zsh
 git clone https://github.com/yoohey/zsh-ime-reset ~/.zsh/zsh-ime-reset
@@ -156,11 +156,11 @@ each zsh --"off"--> named pipe (FIFO) --> relay (zsh) --> powershell.exe
 - PowerShell is started detached from the terminal (`setsid`, present on Debian, Ubuntu and others). Run in the background while still attached, it gets stopped when WSL touches the terminal, the IME stays on, and the terminal even seems to freeze.
 - If PowerShell dies, running commands and other work do not freeze. Next time, the relay starts PowerShell again and sends the line again; that may take 1.5 seconds or so.
 - No `.ps1` file is read, so the PowerShell execution policy does not matter. All that is sent to PowerShell is one fixed line that closes the IME; what is written into the pipe is never run as it is. The pipe is created in `$XDG_RUNTIME_DIR` (or `/tmp`), readable and writable by you only.
-- Verified on WSL2 (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal. It switches back with Google Japanese Input, Microsoft IME and Copilot IME alike.
+- Verified on WSL (Ubuntu 24.04, and a fresh Debian 13) on Windows 11, with Windows Terminal. It switches back with Google Japanese Input, Microsoft IME and Copilot Keyboard alike.
 
 ## How it works
 
-The moments are watched with hooks of zsh's line editor (zle). The watching lives in `zsh-ime-reset-hooks.zsh`, read by both `zsh-ime-reset.plugin.zsh` and the WSL2 file. The command that actually switches to alphanumeric (`fcitx5-remote -c` and so on) is a function, `_ime_reset`, defined for each environment and called from every moment. With the plugin file alone, it switches on Enter only, as before.
+The moments are watched with hooks of zsh's line editor (zle). The watching lives in `zsh-ime-reset-hooks.zsh`, read by both `zsh-ime-reset.plugin.zsh` and the WSL file. The command that actually switches to alphanumeric (`fcitx5-remote -c` and so on) is a function, `_ime_reset`, defined for each environment and called from every moment. With the plugin file alone, it switches on Enter only, as before.
 
 ### On Enter
 
@@ -225,7 +225,7 @@ With ibus, replace `fcitx5-remote -c` with `ibus engine xkb:jp::jpn` (`xkb:us::e
 ./tests/run.zsh
 ```
 
-Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that they are called (on Enter, at the head of the line, on focus events, and that each variable turns its moment off). The head and focus moments were also checked for real with foot and tmux on NixOS (not yet on WSL2 or macOS). Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL2 with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal, with Google Japanese Input, Microsoft IME and Copilot IME; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
+Runs an interactive zsh in a pseudo-terminal with fake `fcitx5-remote` / `macism` / `ibus` / `powershell.exe` commands and checks that they are called (on Enter, at the head of the line, on focus events, and that each variable turns its moment off). The head and focus moments were also checked for real with foot and tmux on NixOS (not yet on WSL or macOS). Verified on NixOS 26.05 (zsh 5.9) with fcitx5, on Fedora with ibus (the pasted block switches back on every Enter), and on WSL with Ubuntu 24.04 and Debian 13 (real use with Windows Terminal, with Google Japanese Input, Microsoft IME and Copilot Keyboard; the tests on Ubuntu); the macOS branch is tested only with a fake `macism`.
 
 ## Article (Japanese)
 
